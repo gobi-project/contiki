@@ -432,7 +432,7 @@ __attribute__((always_inline)) static void generateServerHello(uint32_t *buf) {
     ServerHello_t *sh = (ServerHello_t *) (content->payload + content->len);
     sh->server_version.major = 3;
     sh->server_version.minor = 3;
-    sh->random.gmt_unix_time = uip_htonl(getTime());
+    sh->random.gmt_unix_time = uip_htonl(clock_seconds());
     random_x(sh->random.random_bytes, 28);
     sh->session_id.len = getSessionData(sh->session_id.session_id, src_addr, session_id);
     sh->cipher_suite = UIP_HTONS(TLS_PSK_ECDH_WITH_AES_128_CCM_8);

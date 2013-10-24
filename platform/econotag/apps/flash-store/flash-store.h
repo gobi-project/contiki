@@ -29,25 +29,25 @@
 #define LEN_B_ERR_01     61
 
 //Read Only Vars
-#define RES_MAC          0x1E000
-#define LEN_MAC          0x08
-#define RES_UUID         0x1E008
+#define RES_CONFIG       0x1E000
+#define LEN_CONFIG       0x20
+#define RES_UUID         0x1E020
 #define LEN_UUID         0x10
-#define RES_PSK          0x1E018
+#define RES_PSK          0x1E030
 #define LEN_PSK          0x10
-#define RES_ANSCHARS     0x1E028
+#define RES_ANSCHARS     0x1E040
 #define LEN_ANSCHARS     0x40
-#define RES_ECC_BASE_X   0x1E068
+#define RES_ECC_BASE_X   0x1E080
 #define LEN_ECC_BASE_X   0x20
-#define RES_ECC_BASE_Y   0x1E088
+#define RES_ECC_BASE_Y   0x1E0A0
 #define LEN_ECC_BASE_Y   0x20
-#define RES_ECC_ORDER    0x1E0A8
+#define RES_ECC_ORDER    0x1E0C0
 #define LEN_ECC_ORDER    0x20
-#define RES_NAME         0x1E0C8
+#define RES_NAME         0x1E0E0
 #define LEN_NAME         0x0F
-#define RES_MODEL        0x1E0E8
+#define RES_MODEL        0x1E100
 #define LEN_MODEL        0x0E
-#define RES_FLASHTIME    0x1E108
+#define RES_FLASHTIME    0x1E120
 #define LEN_FLASHTIME    0x04
 
 //Random Access Vars - Byte 0 bis 8192
