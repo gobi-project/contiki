@@ -58,7 +58,39 @@ SENSORS(&button_sensor);
 #define M12_SERIAL M12_CONF_SERIAL
 #endif
 
+#define STACKMONITOR  1
+#define HEAPMONITOR   1
+
 int main(void) {
+	#if STACKMONITOR
+	  /* Simple stack pointer highwater monitor. Checks for magic numbers in the main
+	   * loop. In conjuction with PERIODICPRINTS, never-used stack will be printed
+	   * every STACKMONITOR seconds.
+	   */
+	{
+	extern uint32_t __und_stack_top__, __sys_stack_top__;
+	uint32_t p=(uint32_t)&__und_stack_top__;
+		do {
+		  *(uint32_t *)p = 0x42424242;
+		  p+=16;
+		} while (p<(uint32_t)&__sys_stack_top__-100); //don't overwrite our own stack
+	}
+	#endif
+	#if HEAPMONITOR
+	  /* Simple heap pointer highwater monitor. Checks for magic numbers in the main
+	   * loop. In conjuction with PERIODICPRINTS, never-used heap will be printed
+	   * every HEAPMONITOR seconds.
+	   * This routine assumes a linear FIFO heap as used by the printf _sbrk call.
+	   */
+	{
+	extern uint32_t __heap_start__, __heap_end__;
+	uint32_t p=(uint32_t)&__heap_end__-4;
+	  do {
+		 *(uint32_t *)p = 0x42424242;
+		 p-=4;
+	  } while (p>=(uint32_t)&__heap_start__);
+	}
+	#endif
 
 	mc1322x_init();
 
