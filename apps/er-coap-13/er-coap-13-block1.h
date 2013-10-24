@@ -31,38 +31,17 @@
 
 /**
  * \file
- *      CoAP module for separate responses
+ *      CoAP module for block 1 handling
  * \author
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  */
 
-#ifndef COAP_SEPARATE_H_
-#define COAP_SEPARATE_H_
+#ifndef COAP_BLOCK1_H_
+#define COAP_BLOCK1_H_
 
-#include "er-coap-13.h"
+#include <stddef.h>
+#include <stdint.h>
 
-typedef struct coap_separate {
+int coap_block1_handler(void* request, void* response, uint8_t *target, size_t *len, size_t max_len);
 
-  uip_ipaddr_t addr;
-  uint16_t port;
-
-  coap_message_type_t type;
-  uint16_t mid;
-
-  uint8_t token_len;
-  uint8_t token[COAP_TOKEN_LEN];
-
-  uint32_t block1_num;
-  uint16_t block1_size;
-
-  uint32_t block2_num;
-  uint16_t block2_size;
-
-} coap_separate_t;
-
-int coap_separate_handler(resource_t *resource, void *request, void *response);
-void coap_separate_reject();
-int coap_separate_accept(void *request, coap_separate_t *separate_store);
-void coap_separate_resume(void *response, coap_separate_t *separate_store, uint8_t code);
-
-#endif /* COAP_SEPARATE_H_ */
+#endif /* COAP_BLOCK1_H_ */

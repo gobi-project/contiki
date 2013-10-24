@@ -31,7 +31,7 @@
 
 /**
  * \file
- *      CoAP module for separate responses
+ *      CoAP module for block 1 handling
  * \author
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  */
@@ -39,8 +39,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "er-coap-13-separate.h"
-#include "er-coap-13-transactions.h"
+#include "er-coap-13.h"
+#include "er-coap-13-block1.h"
 
 #define DEBUG 0
 #if DEBUG
@@ -54,72 +54,44 @@
 #endif
 
 /*----------------------------------------------------------------------------*/
-void
-coap_separate_reject()
+int coap_block1_handler(void* request, void* response, uint8_t *target, size_t *len, size_t max_len)
 {
-  coap_error_code = SERVICE_UNAVAILABLE_5_03;
-  coap_error_message = "AlreadyInUse";
-}
-/*----------------------------------------------------------------------------*/
-int
-coap_separate_accept(void *request, coap_separate_t *separate_store)
-{
-  coap_packet_t *const coap_req = (coap_packet_t *) request;
-  coap_transaction_t *const t = coap_get_transaction_by_mid(coap_req->mid);
+  const uint8_t *payload = 0;
+  int pay_len = REST.get_request_payload(request, &payload);
 
-  PRINTF("Separate ACCEPT: /%.*s MID %u\n", coap_req->uri_path_len, coap_req->uri_path, coap_req->mid);
-  if (t)
-  {
-    /* Send separate ACK for CON. */
-    if (coap_req->type==COAP_TYPE_CON)
-    {
-      coap_packet_t ack[1];
-      /* ACK with empty code (0) */
-      coap_init_message(ack, COAP_TYPE_ACK, 0, coap_req->mid);
-      /* Serializing into IPBUF: Only overwrites header parts that are already parsed into the request struct. */
-      coap_send_message(&UIP_IP_BUF->srcipaddr, UIP_UDP_BUF->srcport, (uip_appdata), coap_serialize_message(ack, uip_appdata));
-    }
-
-    /* Store remote address. */
-    uip_ipaddr_copy(&separate_store->addr, &t->addr);
-    separate_store->port = t->port;
-
-    /* Store correct response type. */
-    separate_store->type = coap_req->type==COAP_TYPE_CON ? COAP_TYPE_CON : COAP_TYPE_NON;
-    separate_store->mid = coap_get_mid(); /* if it was a NON, we burned one MID in the engine... */
-
-    memcpy(separate_store->token, coap_req->token, coap_req->token_len);
-    separate_store->token_len = coap_req->token_len;
-
-    separate_store->block1_num = coap_req->block1_num;
-    separate_store->block1_size = coap_req->block1_size;
-
-    separate_store->block2_num = coap_req->block2_num;
-    separate_store->block2_size = coap_req->block2_size;
-
-    /* Signal the engine to skip automatic response and clear transaction by engine. */
-    coap_error_code = MANUAL_RESPONSE;
-
-    return 1;
+  if (!pay_len || !payload) {
+    coap_error_code = REST.status.BAD_REQUEST;
+    coap_error_message = "NoPayload";
+    return -1;
   }
-  else
-  {
-    PRINTF("ERROR: Response transaction for separate request not found!\n");
-    return 0;
+
+  coap_packet_t *packet = (coap_packet_t *) request;
+
+  if (packet->block1_offset + pay_len > max_len) {
+    coap_error_code = REST.status.REQUEST_ENTITY_TOO_LARGE;
+    coap_error_message = "Message to big";
+    return -1;
   }
-}
-/*----------------------------------------------------------------------------*/
-void
-coap_separate_resume(void *response, coap_separate_t *separate_store, uint8_t code)
-{
-  coap_init_message(response, separate_store->type, code, separate_store->mid);
-  if (separate_store->token_len)
-  {
-    coap_set_header_token(response, separate_store->token, separate_store->token_len);
+
+  //TODO prüfen ob das Offset zu den bisher erhaltenen Daten passt
+
+  if (target && len) {
+    memcpy(target + packet->block1_offset, payload, pay_len);
+    *len = packet->block1_offset + pay_len;
   }
-  if (separate_store->block2_num == 0) {
-    if (separate_store->block1_size) {
-      coap_set_header_block1(response, separate_store->block1_num, 0, separate_store->block1_size);
+
+  if (IS_OPTION(packet, COAP_OPTION_BLOCK1)) {
+    PRINTF("Blockwise: block 1 request: Num: %u, More: %u, Size: %u, Offset: %u\n",
+      packet->block1_num,
+      packet->block1_more,
+      packet->block1_size,
+      packet->block1_offset);
+
+    coap_set_header_block1(response, packet->block1_num, packet->block1_more, packet->block1_size);
+    if (packet->block1_more) {
+      return 1;
     }
   }
+
+  return 0;
 }

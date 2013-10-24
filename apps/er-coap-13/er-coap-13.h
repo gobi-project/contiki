@@ -45,7 +45,11 @@
 
 #define COAP_LINK_FORMAT_FILTERING           1
 
-#define COAP_DEFAULT_PORT                    5683
+#ifdef WITH_DTLS
+  #define COAP_DEFAULT_PORT                    5684
+#else
+  #define COAP_DEFAULT_PORT                    5683
+#endif
 
 #ifndef COAP_SERVER_PORT
 #define COAP_SERVER_PORT                     COAP_DEFAULT_PORT

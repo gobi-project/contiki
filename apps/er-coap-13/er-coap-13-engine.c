@@ -43,6 +43,9 @@
 #include "contiki-net.h"
 
 #include "er-coap-13-engine.h"
+#ifdef WITH_DTLS
+  #include "er-dtls-13.h"
+#endif
 
 #define DEBUG 0
 #if DEBUG
@@ -95,7 +98,14 @@ coap_receive(void)
     PRINTBITS(uip_appdata, uip_datalen());
     PRINTF("\n");
 
-    coap_error_code = coap_parse_message(message, uip_appdata, uip_datalen());
+    #ifdef WITH_DTLS
+      CoapData_t coapdata = {0, NULL, 0};
+      dtls_parse_message(uip_appdata, uip_datalen(), &coapdata);
+      if (!coapdata.valid) return NO_ERROR;
+      coap_error_code = coap_parse_message(message, coapdata.data, coapdata.data_len);
+    #else
+      coap_error_code = coap_parse_message(message, uip_appdata, uip_datalen());
+    #endif
 
     if (coap_error_code==NO_ERROR)
     {
@@ -154,7 +164,7 @@ coap_receive(void)
                 /* Apply blockwise transfers. */
                 if ( IS_OPTION(message, COAP_OPTION_BLOCK1) && response->code<BAD_REQUEST_4_00 && !IS_OPTION(response, COAP_OPTION_BLOCK1) )
                 {
-                  PRINTF("Block1 NOT IMPLEMENTED\n");
+                  PRINTF("Block1 NOT IMPLEMENTED in this resource\n");
 
                   coap_error_code = NOT_IMPLEMENTED_5_01;
                   coap_error_message = "NoBlock1Support";
@@ -220,14 +230,9 @@ coap_receive(void)
       else
       {
         /* Responses */
-        if (message->type==COAP_TYPE_CON && message->code==0)
+
+        if (message->type==COAP_TYPE_ACK)
         {
-          PRINTF("Received Ping\n");
-          coap_error_code = PING_RESPONSE;
-        }
-        else if (message->type==COAP_TYPE_ACK)
-        {
-          /* Transactions are closed through lookup below */
           PRINTF("Received ACK\n");
         }
         else if (message->type==COAP_TYPE_RST)
@@ -266,8 +271,6 @@ coap_receive(void)
     }
     else
     {
-      coap_message_type_t reply_type = COAP_TYPE_ACK;
-
       PRINTF("ERROR %u: %s\n", coap_error_code, coap_error_message);
       coap_clear_transaction(transaction);
 
@@ -276,13 +279,8 @@ coap_receive(void)
       {
         coap_error_code = INTERNAL_SERVER_ERROR_5_00;
       }
-      if (coap_error_code == PING_RESPONSE)
-      {
-        coap_error_code = 0;
-        reply_type = COAP_TYPE_RST;
-      }
       /* Reuse input buffer for error message. */
-      coap_init_message(message, reply_type, coap_error_code, message->mid);
+      coap_init_message(message, COAP_TYPE_ACK, coap_error_code, message->mid);
       coap_set_payload(message, coap_error_message, strlen(coap_error_message));
       coap_send_message(&UIP_IP_BUF->srcipaddr, UIP_UDP_BUF->srcport, uip_appdata, coap_serialize_message(message, uip_appdata));
     }
@@ -492,12 +490,24 @@ well_known_core_handler(void* request, void* response, uint8_t *buffer, uint16_t
     }
 }
 /*----------------------------------------------------------------------------*/
+// The dtls-handshake resource is automatically included for CoAP
+// and definied in er-13-dtls/er-dtls-13-resource.c. */
+#ifdef WITH_DTLS
+  RESOURCE(dtls, METHOD_POST | HAS_SUB_RESOURCES, "dtls", "rt=\"dtls.handshake\";if=\"core.lb\";ct=42");
+#endif
+/*----------------------------------------------------------------------------*/
 PROCESS_THREAD(coap_receiver, ev, data)
 {
   PROCESS_BEGIN();
+  #ifdef WITH_DTLS
+    aes_init();
+  #endif
   PRINTF("Starting CoAP-13 receiver...\n");
 
   rest_activate_resource(&resource_well_known_core);
+  #ifdef WITH_DTLS
+    rest_activate_resource(&resource_dtls);
+  #endif
 
   coap_register_as_transaction_handler();
   coap_init_connection(SERVER_LISTEN_PORT);
