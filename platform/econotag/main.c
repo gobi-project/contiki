@@ -94,6 +94,15 @@ int main(void) {
 
 	mc1322x_init();
 
+
+	/* LED driver */
+	//leds_init();
+  /* control TX_ON with the radio */
+	GPIO->FUNC_SEL.GPIO_44 = 2;
+	GPIO->PAD_DIR.GPIO_44 = 1;
+
+
+
 	/* m12_init() flips the mux switch */
 
 	/* trims the main crystal load capacitance */
@@ -148,9 +157,9 @@ int main(void) {
 		/* construct mac from serial number */
 		mc1322x_config.eui = (0xEC473C4D12ull << 24) | M12_SERIAL;
 #endif
-		mc1322x_config_save(&mc1322x_config);		
-	} 
-	
+		mc1322x_config_save(&mc1322x_config);
+	}
+
 	/* configure address on maca hardware and RIME */
 	contiki_maca_set_mac_address(mc1322x_config.eui);
 
@@ -171,7 +180,7 @@ int main(void) {
 
 	process_start(&sensors_process, NULL);
 
-	print_processes(autostart_processes); 
+	print_processes(autostart_processes);
 	autostart_start(autostart_processes);
 
 	/* Main scheduler loop */
@@ -183,9 +192,9 @@ int main(void) {
 				uart1_input_handler(uart1_getc());
 			}
 		}
-		
+
 		process_run();
 	}
-	
+
 	return 0;
 }
