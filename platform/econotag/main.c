@@ -96,8 +96,6 @@ int main(void) {
 	mc1322x_init();
 
 
-	/* LED driver */
-	//leds_init();
 	#if RADIODEBUGLED
   /* control TX_ON with the radio */
 	GPIO->FUNC_SEL.GPIO_44 = 2;
