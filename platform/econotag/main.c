@@ -60,6 +60,7 @@ SENSORS(&button_sensor);
 
 #define STACKMONITOR  1
 #define HEAPMONITOR   1
+#define RADIODEBUGLED 1
 
 int main(void) {
 	#if STACKMONITOR
@@ -97,10 +98,11 @@ int main(void) {
 
 	/* LED driver */
 	//leds_init();
+	#if RADIODEBUGLED
   /* control TX_ON with the radio */
 	GPIO->FUNC_SEL.GPIO_44 = 2;
 	GPIO->PAD_DIR.GPIO_44 = 1;
-
+  #endif
 
 
 	/* m12_init() flips the mux switch */
