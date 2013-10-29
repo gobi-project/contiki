@@ -58,9 +58,6 @@ SENSORS(&button_sensor);
 #define M12_SERIAL M12_CONF_SERIAL
 #endif
 
-#define STACKMONITOR  1
-#define HEAPMONITOR   1
-
 int main(void) {
 	#if STACKMONITOR
 	  /* Simple stack pointer highwater monitor. Checks for magic numbers in the main
