@@ -69,7 +69,7 @@ configure(int type, int c)
 				timer_set(&debouncetimer, 0);
 				enable_irq_kbi(4);
 				kbi_edge(4);
-	      enable_ext_wu(4);
+				enable_ext_wu(4);
 			}
 		} else {
 			disable_irq_kbi(4);
