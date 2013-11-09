@@ -53,34 +53,40 @@
 #define RAMPAGE1	0x10	/* approx. + 1.7 uA */
 #define RAMPAGE2	0x20	/* approx. + 3.9 uA */
 #define RAMPAGEALL	0x30	/* approx. + 6.1 uA */
-#define RETAINSTATE	0x40	/* approx. + 8.0 uA */
-#define POWERGPIO	0x80	/* consumption depends on GPIO hookup */
+#define RETAINSTATE	0x200	/* approx. + 20.0 uA */
+#define POWERGPIO	0x200	/* consumption depends on GPIO hookup */
+
 
 #define LED (1ULL << LED_GREEN)
 
 void hibernate() 
 {
 	/* go to sleep */
-//	*CRM_WU_CNTL 	= 0; 		/* don't wake up */
-	*CRM_WU_CNTL 	= 0x1; 		/* enable wakeup from wakeup timer */
-	*CRM_WU_TIMEOUT = 20000; 	/* wake 10 sec later if hibernate ring osc */
-	*CRM_SLEEP_CNTL = 0x71;//HIBERNATE | RAMPAGEALL | RETAINSTATE; 
+	*CRM_WU_CNTL 	= 0; 		/* Clear Cntl*/
+	set_bit(*CRM_WU_CNTL, 0);	/* Add Timer */
 	
-	/* wait for the sleep cycle to complete */
-	while((*CRM_STATUS & 0x1) == 0) { 
+	set_bit(*CRM_WU_CNTL, 4);
+	set_bit(*CRM_WU_CNTL, 8);
+	
+	*CRM_WU_TIMEOUT = 5000; 	/* wake 10 sec later if hibernate ring osc */
+	*CRM_SLEEP_CNTL = 0x71;//HIBERNATE | RAMPAGEALL | RETAINSTATE; 
+	//enable_ext_wu(20);	
+	
+	/* wait for the sleep cycle to complete */	
+	while(!bit_is_set(*CRM_STATUS, 4) || !bit_is_set(*CRM_STATUS, 0)) {	
 		continue; 
 	}
 	/* write 1 to sleep_sync --- this clears the bit (it's a r1wc bit) and powers down */
-	*CRM_STATUS = 1; 
+	*CRM_STATUS = bit(4) | bit(0); 
 	
 	/* asleep */
 
 	/* wait for the awake cycle to complete */
-	while((*CRM_STATUS & 0x1) == 0) { 
+	while(!bit_is_set(*CRM_STATUS, 4) || !bit_is_set(*CRM_STATUS, 0)) {
 		continue; 
 	}
 	/* write 1 to sleep_sync --- this clears the bit (it's a r1wc bit) and finishes wakeup */
-	*CRM_STATUS = 1; 
+	*CRM_STATUS = bit(4) | bit(0);  
 	
 }
 
@@ -97,18 +103,17 @@ PROCESS_THREAD(hibernate_process, ev, data)
   printf("Testing hibernate.\n");
 
   while(1) {
-  
+  /*
     PROCESS_WAIT_EVENT_UNTIL(ev == sensors_event);
 
-    /* If we woke up after a sensor event, inform what happened */
+    /* If we woke up after a sensor event, inform what happened *
     sensor = (struct sensors_sensor *)data;
     if(sensor == &button_sensor) {
       printf("Button Press\n");
       leds_toggle(LEDS_GREEN);
-    }
-	//hibernate();
-	//leds_toggle(LEDS_GREEN);
-	//printf("%d\n",GPIO->DATA.GPIO_26);
+    }*/
+	hibernate();
+	leds_toggle(LEDS_GREEN);
   }
   PROCESS_END();
 }
