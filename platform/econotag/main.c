@@ -90,6 +90,13 @@ int main(void) {
 	#endif
 
 	mc1322x_init();
+	
+	/* button init */
+	/* set up kbi */
+	enable_irq_kbi(4);
+	kbi_edge(4);
+	enable_ext_wu(4);
+	leds_init();
 
 	/* m12_init() flips the mux switch */
 

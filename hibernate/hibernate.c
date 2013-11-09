@@ -97,17 +97,17 @@ PROCESS_THREAD(hibernate_process, ev, data)
   printf("Testing hibernate.\n");
 
   while(1) {
-  /*
+  
     PROCESS_WAIT_EVENT_UNTIL(ev == sensors_event);
 
-    /* If we woke up after a sensor event, inform what happened *
+    /* If we woke up after a sensor event, inform what happened */
     sensor = (struct sensors_sensor *)data;
     if(sensor == &button_sensor) {
       printf("Button Press\n");
       leds_toggle(LEDS_GREEN);
-    }*/
-	hibernate();
-	leds_toggle(LEDS_GREEN);
+    }
+	//hibernate();
+	//leds_toggle(LEDS_GREEN);
 	//printf("%d\n",GPIO->DATA.GPIO_26);
   }
   PROCESS_END();
