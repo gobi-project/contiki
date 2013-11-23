@@ -53,42 +53,73 @@
 #define RAMPAGE1	0x10	/* approx. + 1.7 uA */
 #define RAMPAGE2	0x20	/* approx. + 3.9 uA */
 #define RAMPAGEALL	0x30	/* approx. + 6.1 uA */
-#define RETAINSTATE	0x200	/* approx. + 20.0 uA */
-#define POWERGPIO	0x200	/* consumption depends on GPIO hookup */
+#define RETAINSTATE	0x40	/* approx. + 20.0 uA */
+#define POWERGPIO	0x80	/* consumption depends on GPIO hookup */
 
 
 #define LED (1ULL << LED_GREEN)
 
-void hibernate() 
-{
-	/* go to sleep */
-	*CRM_WU_CNTL 	= 0; 		/* Clear Cntl*/
-	set_bit(*CRM_WU_CNTL, 0);	/* Add Timer */
-	
-	set_bit(*CRM_WU_CNTL, 4);
-	set_bit(*CRM_WU_CNTL, 8);
-	
-	*CRM_WU_TIMEOUT = 5000; 	/* wake 10 sec later if hibernate ring osc */
-	*CRM_SLEEP_CNTL = 0x71;//HIBERNATE | RAMPAGEALL | RETAINSTATE; 
-	//enable_ext_wu(20);	
-	
-	/* wait for the sleep cycle to complete */	
-	while(!bit_is_set(*CRM_STATUS, 4) || !bit_is_set(*CRM_STATUS, 0)) {	
-		continue; 
-	}
-	/* write 1 to sleep_sync --- this clears the bit (it's a r1wc bit) and powers down */
-	*CRM_STATUS = bit(4) | bit(0); 
-	
-	/* asleep */
+/**
 
-	/* wait for the awake cycle to complete */
-	while(!bit_is_set(*CRM_STATUS, 4) || !bit_is_set(*CRM_STATUS, 0)) {
-		continue; 
-	}
-	/* write 1 to sleep_sync --- this clears the bit (it's a r1wc bit) and finishes wakeup */
-	*CRM_STATUS = bit(4) | bit(0);  
+
+\param flags	Flags describing the sleep-mode.
+SLEEP_MODE_HIBERNATE - hibernate, minimum power mode (approx.   2.0 uA)
+SLEEP_MODE_DOZE - doze, low power mode (approx.  69.2 uA)
+SLEEP_RAM_8K  (approx. + 1.7 uA)
+SLEEP_RAM_32K (approx. + 3.9 uA)
+SLEEP_RAM_64K
+SLEEP_RAM_96K - how much ram has to be powered while sleeping.
+SLEEP_RETAIN_MCU - 
+SLEEP_PAD_PWR - 
+bit(8) -  power GPIO.
+\param timeout	Time until WU-interrupt.	
+\param kbi_index External KBI-WU-interrupt.	
+*/
+void hibernate(uint32_t flags, uint32_t timeout, uint8_t kbi_index) 
+{
+  uint32_t BCNTL   = *CRM_WU_CNTL;
+  uint32_t BSTATUS = *CRM_STATUS;
+	
+  /* go to sleep */
+  *CRM_WU_CNTL 	= 0; 		/* Clear Cntl*/
+  set_bit(*CRM_WU_CNTL, 0);	/* Add Timer */
+  /*
+  set_bit(*CRM_WU_CNTL, 4);
+  set_bit(*CRM_WU_CNTL, 8);
+  */
+  enable_ext_wu(kbi_index);
+  kbi_edge(kbi_index);
+	
+  *CRM_WU_TIMEOUT = timeout; 	/* wake 10 sec later if hibernate ring osc */
+  *CRM_SLEEP_CNTL = flags;//HIBERNATE | RAMPAGEALL | RETAINSTATE; 
+	
+  /* wait for the sleep cycle to complete */	
+  while(!bit_is_set(*CRM_STATUS, kbi_index) || !bit_is_set(*CRM_STATUS, 0)) {	
+    continue; 
+  }
+  /* write 1 to sleep_sync --- this clears the bit (it's a r1wc bit) and powers down */
+  *CRM_STATUS = bit(kbi_index) | bit(0); 
+	
+  /* asleep */
+
+  /* wait for the awake cycle to complete */
+  while(!bit_is_set(*CRM_STATUS, kbi_index) || !bit_is_set(*CRM_STATUS, 0)) {
+    continue; 
+  }
+  /* write 1 to sleep_sync --- this clears the bit (it's a r1wc bit) and finishes wakeup */
+  *CRM_STATUS = bit(kbi_index) | bit(0);  
 	
 }
+
+void droze() 
+{
+  /* BS_EN - BUS Stealer Enable */
+  set_bit(*CRM_BS_CNTL, 0);
+  /* Steal 50% duty cycle */
+  *CRM_BS_CNTL.ARM_OFF_TIME = 0x02;
+}
+
+static struct stimer st;
 
 /*---------------------------------------------------------------------------*/
 PROCESS(hibernate_process, "Hibernate test process");
@@ -96,23 +127,12 @@ AUTOSTART_PROCESSES(&hibernate_process);
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(hibernate_process, ev, data)
 {
-  struct sensors_sensor *sensor;
-
   PROCESS_BEGIN();
-
+  
   printf("Testing hibernate.\n");
 
   while(1) {
-  /*
-    PROCESS_WAIT_EVENT_UNTIL(ev == sensors_event);
-
-    /* If we woke up after a sensor event, inform what happened *
-    sensor = (struct sensors_sensor *)data;
-    if(sensor == &button_sensor) {
-      printf("Button Press\n");
-      leds_toggle(LEDS_GREEN);
-    }*/
-	hibernate();
+	hibernate(0x51, 5000, 4);
 	leds_toggle(LEDS_GREEN);
   }
   PROCESS_END();
