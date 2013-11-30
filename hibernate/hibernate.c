@@ -111,12 +111,13 @@ void hibernate(uint32_t flags, uint32_t timeout, uint8_t kbi_index)
 	
 }
 
-void droze() 
+/**
+
+\param Arm_Off_Time Count of Ticks not given to the CPU 0x00 - 0x1F
+*/
+void droze(uint8_t Arm_Off_Time) 
 {
-  /* BS_EN - BUS Stealer Enable */
-  set_bit(*CRM_BS_CNTL, 0);
-  /* Steal 50% duty cycle */
-  *CRM_BS_CNTL.ARM_OFF_TIME = 0x02;
+	*CRM_BS_CNTL = 0x0005 + (Arm_Off_Time << 8);
 }
 
 static struct stimer st;
@@ -128,12 +129,15 @@ AUTOSTART_PROCESSES(&hibernate_process);
 PROCESS_THREAD(hibernate_process, ev, data)
 {
   PROCESS_BEGIN();
-  
+  int i;
   printf("Testing hibernate.\n");
-
+  droze(0x1f) ;
   while(1) {
-	hibernate(0x51, 5000, 4);
+  i = 0;
+  while(i < 60000) i++;
+	//hibernate(0x51, 5000, 4);
 	leds_toggle(LEDS_GREEN);
+	printf("123\n");
   }
   PROCESS_END();
 }
