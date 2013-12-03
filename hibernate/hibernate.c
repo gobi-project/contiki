@@ -75,23 +75,29 @@ bit(8) -  power GPIO.
 \param timeout	Time until WU-interrupt.	
 \param kbi_index External KBI-WU-interrupt.	
 */
-void hibernate(uint32_t flags, uint32_t timeout, uint8_t kbi_index) 
+void hibernate(uint32_t timeout, uint8_t kbi_index, uint32_t flags) 
 {
-  uint32_t BCNTL   = *CRM_WU_CNTL;
-  uint32_t BSTATUS = *CRM_STATUS;
-	
   /* go to sleep */
-  *CRM_WU_CNTL 	= 0; 		/* Clear Cntl*/
-  set_bit(*CRM_WU_CNTL, 0);	/* Add Timer */
+  /* 
+	Clear Cntl 
+	Also clears Contiki´s settings!!!
+	*/
+  *CRM_WU_CNTL 	= 0;
+  /* Add Timer */
+  set_bit(*CRM_WU_CNTL, 0);	
+  
+  /* 
+	Add KBI-Interrupt 
+	And set it so only trigger an a rising edge.
+	*/
+  set_bit(*CRM_WU_CNTL, kbi_index); 
+  set_bit(*CRM_WU_CNTL, kbi_index + 4);
+
   /*
-  set_bit(*CRM_WU_CNTL, 4);
-  set_bit(*CRM_WU_CNTL, 8);
-  */
-  enable_ext_wu(kbi_index);
-  kbi_edge(kbi_index);
-	
-  *CRM_WU_TIMEOUT = timeout; 	/* wake 10 sec later if hibernate ring osc */
-  *CRM_SLEEP_CNTL = flags;//HIBERNATE | RAMPAGEALL | RETAINSTATE; 
+	Set timeout and hibernate settings
+	*/
+  *CRM_WU_TIMEOUT = timeout;
+  *CRM_SLEEP_CNTL = flags;
 	
   /* wait for the sleep cycle to complete */	
   while(!bit_is_set(*CRM_STATUS, kbi_index) || !bit_is_set(*CRM_STATUS, 0)) {	
@@ -117,7 +123,15 @@ void hibernate(uint32_t flags, uint32_t timeout, uint8_t kbi_index)
 */
 void droze(uint8_t Arm_Off_Time) 
 {
-	*CRM_BS_CNTL = 0x0005 + (Arm_Off_Time << 8);
+  /*
+	Enable BS_EN
+  */
+  *CRM_BS_CNTL = 0x0005 + (Arm_Off_Time << 8);
+}
+
+void awake() 
+{
+  *CRM_BS_CNTL = 0x0000;
 }
 
 static struct stimer st;
