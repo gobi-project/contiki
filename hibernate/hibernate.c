@@ -90,9 +90,10 @@ void hibernate(uint32_t timeout, uint8_t kbi_index, uint32_t flags)
 	Add KBI-Interrupt 
 	And set it so only trigger an a rising edge.
 	*/
-  set_bit(*CRM_WU_CNTL, kbi_index); 
-  set_bit(*CRM_WU_CNTL, kbi_index + 4);
-
+  if (kbi_index) {
+    set_bit(*CRM_WU_CNTL, kbi_index); 
+    set_bit(*CRM_WU_CNTL, kbi_index + 4);
+  }
   /*
 	Set timeout and hibernate settings
 	*/
