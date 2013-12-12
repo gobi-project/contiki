@@ -233,7 +233,7 @@ coap_observe_handler(resource_t *resource, void *request, void *response)
 
       if (coap_add_observer(&UIP_IP_BUF->srcipaddr, UIP_UDP_BUF->srcport, coap_req->token, coap_req->token_len, resource->url))
       {
-        coap_set_header_observe(coap_res, 0);
+        coap_set_header_observe(coap_res, 1);
         /*
          * For demonstration purposes only. A subscription should return the same representation as a normal GET.
          * TODO: Comment the following line for any real application.
