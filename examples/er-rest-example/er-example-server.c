@@ -42,7 +42,7 @@
 #include "contiki.h"
 #include "contiki-net.h"
 
-
+#include "contiki-hibernate.h"
 /* Define which resources to include to meet memory constraints. */
 #define REST_RES_HELLO 0
 #define REST_RES_CHUNKS 1
@@ -857,8 +857,8 @@ PROCESS_THREAD(rest_server_example, ev, data)
 #endif
 
   /* Define application-specific events here. */
-  while(1) {
-    PROCESS_WAIT_EVENT();
+  while(1) {;
+    PROCESS_DROZE_EVENT();
 #if defined (PLATFORM_HAS_BUTTON)
     if (ev == sensors_event && data == &button_sensor) {
       PRINTF("BUTTON\n");
