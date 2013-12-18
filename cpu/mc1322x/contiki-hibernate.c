@@ -1,7 +1,7 @@
 #include "contiki-hibernate.h"
 
-void auto_hibernate(void)
+void etimer_hibernate(void)
 {
-  clock_time_t time = etimer_next_expiration_time();
+  uint32_t time = (etimer_next_expiration_time() >> 6) * 2050 - 2024;
   hibernate(time, 4, 0x51);
 }
