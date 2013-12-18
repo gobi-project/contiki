@@ -10,6 +10,8 @@
 #include "contiki.h"
 #include "dev/leds.h"
 
+#include "contiki-hibernate.h"
+
 #include <stdio.h> /* For printf() */
 /*---------------------------------------------------------------------------*/
 static struct etimer et_hello;
@@ -18,25 +20,31 @@ static uint16_t count;
 static uint8_t blinks;
 /*---------------------------------------------------------------------------*/
 PROCESS(hello_world_process, "Hello world process");
-PROCESS(blink_process, "LED blink process");
-AUTOSTART_PROCESSES(&hello_world_process, &blink_process);
+//PROCESS(blink_process, "LED blink process");
+AUTOSTART_PROCESSES(&hello_world_process);
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(hello_world_process, ev, data)
 {
   PROCESS_BEGIN();
 
-  etimer_set(&et_hello, CLOCK_SECOND * 4);
+  etimer_set(&et_hello, CLOCK_SECOND * 3);
   count = 0;
+   blinks = 0;
 
   while(1) {
-    PROCESS_WAIT_EVENT();
-
-    if(ev == PROCESS_EVENT_TIMER) {
-      printf("Sensor says #%u\n", count);
-      count++;
-
-      etimer_reset(&et_hello);
-    }
+   // PROCESS_WAIT_EVENT();
+	
+	 // PROCESS_SLEEP_UNTIL(0);
+//auto_hibernate();
+  //  if(ev == PROCESS_EVENT_TIMER) {
+      leds_off(LEDS_ALL);
+      leds_on(blinks & LEDS_ALL);
+      blinks++;
+hibernate(CLOCK_SECOND * 60, 4, 0x51);
+     // etimer_reset(&et_hello);
+   // }
+	
+	etimer_reset(&et_hello);
   }
 
   PROCESS_END();

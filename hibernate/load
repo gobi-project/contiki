@@ -1,1 +1,0 @@
-../cpu/mc1322x/tools/mc1322x-load.pl -f hibernate_econotag.bin -t /dev/ttyS7

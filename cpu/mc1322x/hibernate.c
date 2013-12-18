@@ -75,7 +75,7 @@ void droze(uint8_t Arm_Off_Time)
   *CRM_BS_CNTL = 0x0005 + (Arm_Off_Time << 8);
 }
 
-void awake() 
+void awake(void) 
 {
   *CRM_BS_CNTL = 0x0000;
 }

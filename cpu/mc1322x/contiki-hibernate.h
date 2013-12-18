@@ -3,6 +3,8 @@
 #include "sys/pt.h"
 #include "sys/cc.h"
 
+#include "etimer.h"
+
 #define DROZE(pt)						\
   droze(0x1F);							\
   do {									\
@@ -24,9 +26,15 @@
   } while(0);							\
   awake()
   
-#define DROZE_WHILE(pt, cond)  DROZE_UNTIL((pt), !(cond))
+#define DROZE_WHILE(pt, cond)  		DROZE_UNTIL((pt), !(cond))
+#define PROCESS_DROZE_UNTIL(c)      DROZE_UNTIL(process_pt, c)
+#define PROCESS_DROZE_WHILE(c)      DROZE_WHILE(process_pt, c)
+#define PROCESS_DROZE_EVENT()       DROZE(process_pt)
+#define PROCESS_DROZE()             DROZE(process_pt)
 
-#define PROCESS_DROZE_UNTIL(c)       DROZE_UNTIL(process_pt, c)
-#define PROCESS_DROZE_WHILE(c)       DROZE_WHILE(process_pt, c)
-#define PROCESS_DROZE_EVENT()        DROZE(process_pt)
-#define PROCESS_DROZE()              DROZE(process_pt)
+void auto_hibernate(void);
+
+#define SLEEP_UNTIL(pt, condition)		\
+  auto_hibernate()					
+
+#define PROCESS_SLEEP_UNTIL(c)      SLEEP_UNTIL(process_pt, c)

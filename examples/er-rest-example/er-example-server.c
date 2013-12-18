@@ -866,6 +866,7 @@ PROCESS_THREAD(rest_server_example, ev, data)
       /* Call the event_handler for this application-specific event. */
       event_event_handler(&resource_event);
 #endif
+	PRINTF("BUTTON\n");
 #if REST_RES_SEPARATE && WITH_COAP>3
       /* Also call the separate response example handler. */
       separate_finalize_handler();
