@@ -2,7 +2,7 @@
 
 /* mc1322x */
 #include "mc1322x.h"
-
+#include "rtc.h"
 /**
 
 
@@ -21,6 +21,7 @@ bit(8) -  power GPIO.
 */
 void hibernate(uint32_t timeout, uint8_t kbi_index, uint32_t flags) 
 {
+  //timeout *= rtc_freq;
   /* go to sleep */
   /* 
 	Clear Cntl 

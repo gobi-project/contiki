@@ -1,5 +1,7 @@
 #include "htimer.h"
 
+#include "rtc.h"
+
 static struct htimer *timerlist = NULL;
 /*---------------------------------------------------------------------------*/
 void
@@ -15,7 +17,7 @@ htimer_set(struct htimer *ht, clock_time_t interval, uint32_t interrupts, uint32
 void 
 htimer_hibernate_specific(struct htimer *ht)
 {
-  uint32_t time = ((etimer_expiration_time((void*)ht) * 2050) >> 6) - 4048;
+  uint32_t time = ((etimer_expiration_time((void*)ht) * rtc_freq) >> 6);// - (rtc_freq * 2);
   hibernate(time, ht->interrupts, ht->flags);
 }
 /*---------------------------------------------------------------------------*/
@@ -70,6 +72,6 @@ htimer_next_expiration_time(void)
 void 
 htimer_hibernate(void)
 {
-  uint32_t time = ((etimer_next_expiration_time() * 2050) >> 6) - 4048;
+  uint32_t time = ((etimer_next_expiration_time() * rtc_freq) >> 6);// - (rtc_freq * 2);
   hibernate(time, timerlist->interrupts, timerlist->flags);
 }

@@ -122,6 +122,20 @@ void buck_setup(void) {
 	}
 }
 
+void ring_osc_setup(void) {
+	CRM->SYS_CNTLbits.XTAL32_EXISTS = 0;
+	CRM->XTAL32_CNTLbits.XTAL32_EN = 0;
+	ring_osc_on();
+
+	/* Set default tune values from datasheet */
+	CRM->RINGOSC_CNTLbits.ROSC_CTUNE = 0x6;
+	CRM->RINGOSC_CNTLbits.ROSC_FTUNE = 0x17;
+
+	/* Trigger calibration */
+	rtc_calibrate();
+	PRINTF("RTC calibrated to %d Hz\r\n", rtc_freq);
+}
+
 /* setup the RTC */
 /* try to start the 32kHz xtal */
 void rtc_setup(void) {
@@ -137,17 +151,7 @@ void rtc_setup(void) {
 	for(i = 0; i < 150000 && CRM->RTC_COUNT == rtc_count; i++) { continue; }
 	if(CRM->RTC_COUNT == rtc_count) {
 		PRINTF("32xtal failed, using ring osc\n\r");
-		CRM->SYS_CNTLbits.XTAL32_EXISTS = 0;
-		CRM->XTAL32_CNTLbits.XTAL32_EN = 0;
-		ring_osc_on();
-
-		/* Set default tune values from datasheet */
-		CRM->RINGOSC_CNTLbits.ROSC_CTUNE = 0x6;
-		CRM->RINGOSC_CNTLbits.ROSC_FTUNE = 0x17;
-
-		/* Trigger calibration */
-		rtc_calibrate();
-		PRINTF("RTC calibrated to %d Hz\r\n", rtc_freq);
+		ring_osc_setup();
 	} else {
 		PRINTF("32kHz xtal started\n\r");
 		rtc_freq = 32768;
@@ -198,7 +202,10 @@ void mc1322x_init(void) {
 
 	/* must be done AFTER maca_init */
 	/* the radio calibration appears to clobber the RTC trim caps */
-	rtc_setup();
+	if (CRM->SYS_CNTLbits.XTAL32_EXISTS)
+		rtc_setup();	
+	else
+		ring_osc_setup();
 	rtimer_init();
 	clock_init();
 
