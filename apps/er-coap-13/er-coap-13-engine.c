@@ -310,6 +310,28 @@ coap_get_rest_method(void *packet)
 /*- Server part --------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 
+#define ADD_CHAR_IF_POSSIBLE(char) \
+  if(strpos >= *offset && bufpos < preferred_size) { \
+    buffer[bufpos++] = char; \
+  } \
+  ++strpos
+
+#define ADD_STRING_IF_POSSIBLE(string, op) \
+  tmplen = strlen(string); \
+  if(strpos + tmplen > *offset) { \
+    bufpos += snprintf((char *)buffer + bufpos, \
+                       preferred_size - bufpos + 1, \
+                       "%s", \
+                       string \
+                       + (*offset - (int32_t) strpos > 0 ? \
+                          *offset - (int32_t) strpos : 0)); \
+    if(bufpos op preferred_size) { \
+      PRINTF("res: BREAK at %s (%p)\n", string, resource); \
+      break; \
+    } \
+  } \
+  strpos += tmplen
+
 /* The discover resource is automatically included for CoAP. */
 RESOURCE(well_known_core, METHOD_GET, ".well-known/core", "ct=40");
 void
@@ -394,100 +416,48 @@ well_known_core_handler(void* request, void* response, uint8_t *buffer, uint16_t
       }
 #endif
 
-      PRINTF("res: /%s (%p)\npos: s%d, o%ld, b%d\n", resource->url, resource, strpos, *offset, bufpos);
+    PRINTF("res: /%s (%p)\npos: s%d, o%ld, b%d\n", resource->url, resource,
+           strpos, *offset, bufpos);
 
-      if (strpos>0)
-      {
-        if (strpos >= *offset && bufpos < preferred_size)
-        {
-          buffer[bufpos++] = ',';
-        }
-        ++strpos;
-      }
+    if(strpos > 0) {
+      ADD_CHAR_IF_POSSIBLE(',');
+    }
+    ADD_CHAR_IF_POSSIBLE('<');
+    ADD_CHAR_IF_POSSIBLE('/');
+    ADD_STRING_IF_POSSIBLE(resource->url, >=);
+    ADD_CHAR_IF_POSSIBLE('>');
 
-      if (strpos >= *offset && bufpos < preferred_size)
-      {
-        buffer[bufpos++] = '<';
-      }
-      ++strpos;
-
-      if (strpos >= *offset && bufpos < preferred_size)
-      {
-        buffer[bufpos++] = '/';
-      }
-      ++strpos;
-
-      tmplen = strlen(resource->url);
-      if (strpos+tmplen > *offset)
-      {
-        bufpos += snprintf((char *) buffer + bufpos, preferred_size - bufpos + 1,
-                         "%s", resource->url + ((*offset-(int32_t)strpos > 0) ? (*offset-(int32_t)strpos) : 0));
-                                                          /* minimal-net requires these casts */
-        if (bufpos >= preferred_size)
-        {
-          break;
-        }
-      }
-      strpos += tmplen;
-
-      if (strpos >= *offset && bufpos < preferred_size)
-      {
-        buffer[bufpos++] = '>';
-      }
-      ++strpos;
-
-      if (resource->attributes[0])
-      {
-        if (strpos >= *offset && bufpos < preferred_size)
-        {
-          buffer[bufpos++] = ';';
-        }
-        ++strpos;
-
-        tmplen = strlen(resource->attributes);
-        if (strpos+tmplen > *offset)
-        {
-          bufpos += snprintf((char *) buffer + bufpos, preferred_size - bufpos + 1,
-                         "%s", resource->attributes + (*offset-(int32_t)strpos > 0 ? *offset-(int32_t)strpos : 0));
-          if (bufpos >= preferred_size)
-          {
-            break;
-          }
-        }
-        strpos += tmplen;
-      }
-
-      /* buffer full, but resource not completed yet; or: do not break if resource exactly fills buffer. */
-      if (bufpos >= preferred_size && strpos-bufpos > *offset)
-      {
-        PRINTF("res: BREAK at %s (%p)\n", resource->url, resource);
-        break;
-      }
+    if(resource->attributes[0]) {
+      ADD_CHAR_IF_POSSIBLE(';');
+      ADD_STRING_IF_POSSIBLE(resource->attributes, >);
     }
 
-    if (bufpos>0) {
-      PRINTF("BUF %d: %.*s\n", bufpos, bufpos, (char *) buffer);
+    /* buffer full, but resource not completed yet; or: do not break if resource exactly fills buffer. */
+    if(bufpos > preferred_size && strpos - bufpos > *offset) {
+      PRINTF("res: BREAK at %s (%p)\n", resource->url, resource);
+      break;
+    }
+  }
 
-      coap_set_payload(response, buffer, bufpos );
-      coap_set_header_content_type(response, APPLICATION_LINK_FORMAT);
-    }
-    else if (strpos>0)
-    {
-      PRINTF("well_known_core_handler(): bufpos<=0\n");
+  if(bufpos > 0) {
+    PRINTF("BUF %d: %.*s\n", bufpos, bufpos, (char *)buffer);
 
-      coap_set_status_code(response, BAD_OPTION_4_02);
-      coap_set_payload(response, "BlockOutOfScope", 15);
-    }
+    coap_set_payload(response, buffer, bufpos);
+    coap_set_header_content_type(response, APPLICATION_LINK_FORMAT);
+  } else if(strpos > 0) {
+    PRINTF("well_known_core_handler(): bufpos<=0\n");
 
-    if (resource==NULL) {
-      PRINTF("res: DONE\n");
-      *offset = -1;
-    }
-    else
-    {
-      PRINTF("res: MORE at %s (%p)\n", resource->url, resource);
-      *offset += preferred_size;
-    }
+    coap_set_status_code(response, BAD_OPTION_4_02);
+    coap_set_payload(response, "BlockOutOfScope", 15);
+  }
+
+  if(resource == NULL) {
+    PRINTF("res: DONE\n");
+    *offset = -1;
+  } else {
+    PRINTF("res: MORE at %s (%p)\n", resource->url, resource);
+    *offset += preferred_size;
+  }
 }
 /*----------------------------------------------------------------------------*/
 // The dtls-handshake resource is automatically included for CoAP
