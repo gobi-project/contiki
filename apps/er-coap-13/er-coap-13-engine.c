@@ -198,10 +198,13 @@ coap_receive(void)
                 }
                 else if (new_offset!=0)
                 {
-                  PRINTF("Blockwise: no block option for blockwise resource, using block size %u\n", REST_MAX_CHUNK_SIZE);
+                  uint32_t new_size = 0x80000000 >> __builtin_clz(REST_MAX_CHUNK_SIZE);
 
-                  coap_set_header_block2(response, 0, new_offset!=-1, REST_MAX_CHUNK_SIZE);
-                  coap_set_payload(response, response->payload, MIN(response->payload_len, REST_MAX_CHUNK_SIZE));
+                  PRINTF("Blockwise: no block option for blockwise resource,\n");
+                  PRINTF("using block size %u. Downgrading to %u.\n", REST_MAX_CHUNK_SIZE, new_size);
+
+                  coap_set_header_block2(response, 0, new_offset!=-1, new_size);
+                  coap_set_payload(response, response->payload, MIN(response->payload_len, new_size));
                 } /* if (blockwise request) */
               } /* no errors/hooks */
             } /* successful service callback */
@@ -337,8 +340,6 @@ RESOURCE(well_known_core, METHOD_GET, ".well-known/core", "ct=40");
 void
 well_known_core_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-    if (preferred_size > 32) preferred_size = 32;
-
     size_t strpos = 0; /* position in overall string (which is larger than the buffer) */
     size_t bufpos = 0; /* position within buffer (bytes written) */
     size_t tmplen = 0;
