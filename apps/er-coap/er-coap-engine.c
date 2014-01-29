@@ -41,7 +41,7 @@
 #include <string.h>
 #include "er-coap-engine.h"
 #ifdef WITH_DTLS
-  #include "er-dtls-13.h"
+  #include "er-dtls.h"
 #endif
 
 #define DEBUG   DEBUG_NONE
@@ -327,6 +327,9 @@ coap_get_rest_method(void *packet)
 
 /* the discover resource is automatically included for CoAP */
 extern resource_t res_well_known_core;
+#ifdef WITH_DTLS
+  extern resource_t res_dtls;
+#endif
 
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(coap_engine, ev, data)
@@ -339,7 +342,7 @@ PROCESS_THREAD(coap_engine, ev, data)
 
   rest_activate_resource(&res_well_known_core, ".well-known/core");
   #ifdef WITH_DTLS
-    rest_activate_resource(&resource_dtls);
+    rest_activate_resource(&res_dtls, "dtls");
   #endif
 
   coap_register_as_transaction_handler();

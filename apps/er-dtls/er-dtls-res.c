@@ -138,7 +138,7 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                 generateHelloVerifyRequest(buffer, new_cookie, 8);
 
                 coap_set_status_code(response, UNAUTHORIZED_4_01);
-                coap_set_header_content_type(response, APPLICATION_OCTET_STREAM);
+                coap_set_header_content_format(response, APPLICATION_OCTET_STREAM);
                 coap_set_payload(response, buffer + 1, buffer[0]);
             } else {
                 PRINTF("ClientHello mit korrektem Cookie erhalten\n");
@@ -202,7 +202,7 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
             }
 
             coap_separate_resume(response, request_metadata, CHANGED_2_04);
-            coap_set_header_content_type(response, APPLICATION_OCTET_STREAM);
+            coap_set_header_content_format(response, APPLICATION_OCTET_STREAM);
             if (content->type == c_change_cipher_spec) {
                 content += 3;
 
@@ -289,7 +289,7 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
 /*---------------------------------------------------------------------------*/
 
 //RESOURCE(dtls, METHOD_POST | HAS_SUB_RESOURCES, "dtls", "rt=\"dtls.handshake\";if=\"core.lb\";ct=42");
-PARENT_RESOURCE(dtls, "rt=\"dtls.handshake\";if=\"core.lb\";ct=42", NULL, dtls_handler, NULL, NULL);
+PARENT_RESOURCE(res_dtls, "rt=\"dtls.handshake\";if=\"core.lb\";ct=42", NULL, dtls_handler, NULL, NULL);
 
 /*---------------------------------------------------------------------------*/
 
@@ -641,7 +641,7 @@ void sendServerHello(void *data, void* resp) {
     if ( (transaction = coap_new_transaction(request_metadata->mid, &request_metadata->addr, request_metadata->port)) ) {
         coap_packet_t response[1];
         coap_separate_resume(response, request_metadata, CREATED_2_01);
-        coap_set_header_content_type(response, APPLICATION_OCTET_STREAM);
+        coap_set_header_content_format(response, APPLICATION_OCTET_STREAM);
         coap_set_payload(response, buffer, read == 0 ? request_metadata->block2_size : read);
         coap_set_header_block2(response, request_metadata->block2_num, read == 0 ? 1 : 0, request_metadata->block2_size);
         // TODO Warning: No check for serialization error.
