@@ -1,6 +1,6 @@
-/* __ER_DTLS_13_H__ */
-#ifndef __ER_DTLS_13_H__
-#define __ER_DTLS_13_H__
+/* __ER_DTLS_H__ */
+#ifndef __ER_DTLS_H__
+#define __ER_DTLS_H__
 
 #include <stdint.h>
 
@@ -97,4 +97,4 @@ void dtls_parse_message(DTLSRecord_t *record, uint8_t len, CoapData_t *coapdata)
   */
 void dtls_send_message(struct uip_udp_conn *conn, const void *data, uint8_t len);
 
-#endif /* __ER_DTLS_13_H__ */
+#endif /* __ER_DTLS_H__ */

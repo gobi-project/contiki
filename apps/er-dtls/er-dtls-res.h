@@ -1,10 +1,10 @@
-/* __ER_DTLS_13_RESOURCE_H__ */
-#ifndef __ER_DTLS_13_RESOURCE_H__
-#define __ER_DTLS_13_RESOURCE_H__
+/* __ER_DTLS_RES_H__ */
+#ifndef __ER_DTLS_RES_H__
+#define __ER_DTLS_RES_H__
 
 #include <stdint.h>
 
-#include "erbium.h"
+#include "rest-engine.h"
 
 typedef enum {
     hello_request = 0,
@@ -164,4 +164,4 @@ typedef struct { // 2 + 16 + 3 + 66 = 87 Byte groß
     ECPoint public_key;
 } __attribute__ ((packed)) KeyExchange_t;
 
-#endif /* __ER_DTLS_13_RESOURCE_H__ */
+#endif /* __ER_DTLS_RES_H__ */

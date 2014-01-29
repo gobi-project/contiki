@@ -39,8 +39,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "er-coap-13.h"
-#include "er-coap-13-block1.h"
+#include "er-coap.h"
+#include "er-coap-block1.h"
 
 #define DEBUG 0
 #if DEBUG
@@ -60,7 +60,7 @@ int coap_block1_handler(void* request, void* response, uint8_t *target, size_t *
   int pay_len = REST.get_request_payload(request, &payload);
 
   if (!pay_len || !payload) {
-    coap_error_code = REST.status.BAD_REQUEST;
+    erbium_status_code = REST.status.BAD_REQUEST;
     coap_error_message = "NoPayload";
     return -1;
   }
@@ -68,7 +68,7 @@ int coap_block1_handler(void* request, void* response, uint8_t *target, size_t *
   coap_packet_t *packet = (coap_packet_t *) request;
 
   if (packet->block1_offset + pay_len > max_len) {
-    coap_error_code = REST.status.REQUEST_ENTITY_TOO_LARGE;
+    erbium_status_code = REST.status.REQUEST_ENTITY_TOO_LARGE;
     coap_error_message = "Message to big";
     return -1;
   }

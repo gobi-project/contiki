@@ -1,6 +1,6 @@
-/* __ER_DTLS_13_ALERT_H__ */
-#ifndef __ER_DTLS_13_ALERT_H__
-#define __ER_DTLS_13_ALERT_H__
+/* __ER_DTLS_ALERT_H__ */
+#ifndef __ER_DTLS_ALERT_H__
+#define __ER_DTLS_ALERT_H__
 
 #include <stdint.h>
 
@@ -70,6 +70,6 @@ void sendAlert(uip_ipaddr_t *addr, uint16_t port, AlertLevel level, AlertDescrip
   */
 void generateAlert(void* response, uint8_t *buffer, AlertDescription description);
 
-#endif /* __ER_DTLS_13_ALERT_H__ */
+#endif /* __ER_DTLS_ALERT_H__ */
 
 

@@ -1,17 +1,17 @@
-#include "er-dtls-13-resource.h"
+#include "er-dtls-res.h"
 
 #include <string.h>
 
-#include "er-coap-13.h"
-#include "er-coap-13-separate.h"
-#include "er-coap-13-transactions.h"
-#include "er-coap-13-block1.h"
-#include "er-dtls-13.h"
-#include "er-dtls-13-data.h"
-#include "er-dtls-13-random.h"
-#include "er-dtls-13-prf.h"
-#include "er-dtls-13-psk.h"
-#include "er-dtls-13-alert.h"
+#include "er-coap.h"
+#include "er-coap-separate.h"
+#include "er-coap-transactions.h"
+#include "er-coap-block1.h"
+#include "er-dtls.h"
+#include "er-dtls-data.h"
+#include "er-dtls-random.h"
+#include "er-dtls-prf.h"
+#include "er-dtls-psk.h"
+#include "er-dtls-alert.h"
 #include "time.h"
 #include "aes.h"
 #include "ecc.h"
@@ -76,7 +76,7 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
         // Betreten verboten, falls ip ungleich && busy_since nicht weiter als 60 sekunden zurück liegt
         if (!uip_ipaddr_cmp(src_addr, &UIP_IP_BUF->srcipaddr)) {
             if (clock_seconds() - busy_since <= 60) {
-                coap_error_code = SERVICE_UNAVAILABLE_5_03;
+                erbium_status_code = SERVICE_UNAVAILABLE_5_03;
                 coap_error_message = "AlreadyInUse";
                 return;
             }
@@ -288,7 +288,8 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
 
 /*---------------------------------------------------------------------------*/
 
-RESOURCE(dtls, METHOD_POST | HAS_SUB_RESOURCES, "dtls", "rt=\"dtls.handshake\";if=\"core.lb\";ct=42");
+//RESOURCE(dtls, METHOD_POST | HAS_SUB_RESOURCES, "dtls", "rt=\"dtls.handshake\";if=\"core.lb\";ct=42");
+PARENT_RESOURCE(dtls, "rt=\"dtls.handshake\";if=\"core.lb\";ct=42", NULL, dtls_handler, NULL, NULL);
 
 /*---------------------------------------------------------------------------*/
 

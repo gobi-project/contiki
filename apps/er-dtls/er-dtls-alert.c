@@ -1,8 +1,8 @@
-#include "er-dtls-13-alert.h"
+#include "er-dtls-alert.h"
 
-#include "er-coap-13.h"
-#include "er-dtls-13.h"
-#include "er-dtls-13-resource.h"
+#include "er-coap.h"
+#include "er-dtls.h"
+#include "er-dtls-res.h"
 
 /*---------------------------------------------------------------------------*/
 

@@ -1,6 +1,6 @@
-/* __ER_COAP_13_DTLS_PSK_H__ */
-#ifndef __ER_COAP_13_DTLS_PSK_H__
-#define __ER_COAP_13_DTLS_PSK_H__
+/* __ER_COAP_DTLS_PSK_H__ */
+#ifndef __ER_COAP_DTLS_PSK_H__
+#define __ER_COAP_DTLS_PSK_H__
 
 #include <stdint.h>
 
@@ -23,4 +23,4 @@ void getPSK(uint8_t *dst);
   */
 void newPSK();
 
-#endif /* __ER_COAP_13_DTLS_PSK_H__ */
+#endif /* __ER_COAP_DTLS_PSK_H__ */

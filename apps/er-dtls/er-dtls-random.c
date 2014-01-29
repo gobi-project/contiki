@@ -1,4 +1,4 @@
-#include "er-dtls-13-random.h"
+#include "er-dtls-random.h"
 
 #include "mc1322x.h"
 

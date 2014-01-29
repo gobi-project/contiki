@@ -1,11 +1,11 @@
-#include "er-dtls-13-data.h"
+#include "er-dtls-data.h"
 
 #include <string.h>
 
 #include "ecc.h"
 #include "flash-store.h"
-#include "er-dtls-13-random.h"
-#include "er-dtls-13-psk.h"
+#include "er-dtls-random.h"
+#include "er-dtls-psk.h"
 
 /*---------------------------------------------------------------------------*/
 

@@ -1,8 +1,8 @@
-#include "er-dtls-13-prf.h"
+#include "er-dtls-prf.h"
 
 #include <string.h>
 
-#include "er-dtls-13-psk.h"
+#include "er-dtls.h"
 
 #include "aes.h"
 

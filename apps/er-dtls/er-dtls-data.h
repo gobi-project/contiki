@@ -1,6 +1,6 @@
-/* __ER_DTLS_13_DATA_H__ */
-#ifndef __ER_DTLS_13_DATA_H__
-#define __ER_DTLS_13_DATA_H__
+/* __ER_DTLS_DATA_H__ */
+#ifndef __ER_DTLS_DATA_H__
+#define __ER_DTLS_DATA_H__
 
 #include <stddef.h>
 #include <stdint.h>
@@ -137,4 +137,4 @@ int insertKeyBlock(uip_ipaddr_t *addr, KeyBlock_t *key_block);
   */
 fpoint_t getKeyBlock(uip_ipaddr_t *addr, uint16_t epoch, int update);
 
-#endif /* __ER_DTLS_13_DATA_H__ */
+#endif /* __ER_DTLS_DATA_H__ */

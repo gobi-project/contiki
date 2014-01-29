@@ -1,10 +1,10 @@
-#include "er-dtls-13.h"
+#include "er-dtls.h"
 
 #include <string.h>
 
-#include "er-coap-13.h"
-#include "er-dtls-13-data.h"
-#include "er-dtls-13-alert.h"
+#include "er-coap.h"
+#include "er-dtls-data.h"
+#include "er-dtls-alert.h"
 
 #include "aes.h"
 
