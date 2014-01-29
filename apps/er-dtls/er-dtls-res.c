@@ -286,7 +286,11 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
         big_msg_len = 0;
 }
 
-/* ------------------------------------------------------------------------- */
+/*---------------------------------------------------------------------------*/
+
+RESOURCE(dtls, METHOD_POST | HAS_SUB_RESOURCES, "dtls", "rt=\"dtls.handshake\";if=\"core.lb\";ct=42");
+
+/*---------------------------------------------------------------------------*/
 
 __attribute__((always_inline)) static void generateHelloVerifyRequest(uint8_t *dst, uint8_t *cookie, size_t cookie_len) {
     dst[0] = 13;
