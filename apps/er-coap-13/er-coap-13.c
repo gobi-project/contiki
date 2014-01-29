@@ -327,9 +327,6 @@ coap_serialize_message(void *packet, uint8_t *buffer)
   coap_pkt->buffer[2] = (uint8_t) ((coap_pkt->mid)>>8);
   coap_pkt->buffer[3] = (uint8_t) (coap_pkt->mid);
 
-  /* empty packet, dont need to do more stuff */
-  if (!coap_pkt->code) return 4;
-
   /* set Token */
   PRINTF("Token (len %u)", coap_pkt->token_len);
   option = coap_pkt->buffer + COAP_HEADER_LEN;
@@ -410,11 +407,7 @@ coap_send_message(uip_ipaddr_t *addr, uint16_t port, uint8_t *data, uint16_t len
   uip_ipaddr_copy(&udp_conn->ripaddr, addr);
   udp_conn->rport = port;
 
-  #ifdef WITH_DTLS
-    dtls_send_message(udp_conn, data, length);
-  #else
-    uip_udp_packet_send(udp_conn, data, length);
-  #endif
+  uip_udp_packet_send(udp_conn, data, length);
   PRINTF("-sent UDP datagram (%u)-\n", length);
 
   /* Restore server connection to allow data from any node */

@@ -233,17 +233,17 @@ coap_observe_handler(resource_t *resource, void *request, void *response)
 
       if (coap_add_observer(&UIP_IP_BUF->srcipaddr, UIP_UDP_BUF->srcport, coap_req->token, coap_req->token_len, resource->url))
       {
-        coap_set_header_observe(coap_res, 1);
+        coap_set_header_observe(coap_res, 0);
         /*
          * For demonstration purposes only. A subscription should return the same representation as a normal GET.
          * TODO: Comment the following line for any real application.
          */
-        //coap_set_payload(coap_res, content, snprintf(content, sizeof(content), "Added %u/%u", list_length(observers_list), COAP_MAX_OBSERVERS));
+        coap_set_payload(coap_res, content, snprintf(content, sizeof(content), "Added %u/%u", list_length(observers_list), COAP_MAX_OBSERVERS));
       }
       else
       {
         coap_res->code = SERVICE_UNAVAILABLE_5_03;
-        //coap_set_payload(coap_res, "TooManyObservers", 16);
+        coap_set_payload(coap_res, "TooManyObservers", 16);
       } /* if (added observer) */
     }
     else /* if (observe) */

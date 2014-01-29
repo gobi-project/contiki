@@ -43,9 +43,6 @@
 #include "contiki-net.h"
 
 #include "er-coap-13-engine.h"
-#ifdef WITH_DTLS
-  #include "er-dtls-13.h"
-#endif
 
 #define DEBUG 0
 #if DEBUG
@@ -98,14 +95,7 @@ coap_receive(void)
     PRINTBITS(uip_appdata, uip_datalen());
     PRINTF("\n");
 
-    #ifdef WITH_DTLS
-      CoapData_t coapdata = {0, NULL, 0};
-      dtls_parse_message(uip_appdata, uip_datalen(), &coapdata);
-      if (!coapdata.valid) return NO_ERROR;
-      coap_error_code = coap_parse_message(message, coapdata.data, coapdata.data_len);
-    #else
-      coap_error_code = coap_parse_message(message, uip_appdata, uip_datalen());
-    #endif
+    coap_error_code = coap_parse_message(message, uip_appdata, uip_datalen());
 
     if (coap_error_code==NO_ERROR)
     {
@@ -164,7 +154,7 @@ coap_receive(void)
                 /* Apply blockwise transfers. */
                 if ( IS_OPTION(message, COAP_OPTION_BLOCK1) && response->code<BAD_REQUEST_4_00 && !IS_OPTION(response, COAP_OPTION_BLOCK1) )
                 {
-                  PRINTF("Block1 NOT IMPLEMENTED in this resource\n");
+                  PRINTF("Block1 NOT IMPLEMENTED\n");
 
                   coap_error_code = NOT_IMPLEMENTED_5_01;
                   coap_error_message = "NoBlock1Support";
@@ -198,13 +188,10 @@ coap_receive(void)
                 }
                 else if (new_offset!=0)
                 {
-                  uint32_t new_size = 0x80000000 >> __builtin_clz(REST_MAX_CHUNK_SIZE);
+                  PRINTF("Blockwise: no block option for blockwise resource, using block size %u\n", REST_MAX_CHUNK_SIZE);
 
-                  PRINTF("Blockwise: no block option for blockwise resource,\n");
-                  PRINTF("using block size %u. Downgrading to %u.\n", REST_MAX_CHUNK_SIZE, new_size);
-
-                  coap_set_header_block2(response, 0, new_offset!=-1, new_size);
-                  coap_set_payload(response, response->payload, MIN(response->payload_len, new_size));
+                  coap_set_header_block2(response, 0, new_offset!=-1, REST_MAX_CHUNK_SIZE);
+                  coap_set_payload(response, response->payload, MIN(response->payload_len, REST_MAX_CHUNK_SIZE));
                 } /* if (blockwise request) */
               } /* no errors/hooks */
             } /* successful service callback */
@@ -233,9 +220,14 @@ coap_receive(void)
       else
       {
         /* Responses */
-
-        if (message->type==COAP_TYPE_ACK)
+        if (message->type==COAP_TYPE_CON && message->code==0)
         {
+          PRINTF("Received Ping\n");
+          coap_error_code = PING_RESPONSE;
+        }
+        else if (message->type==COAP_TYPE_ACK)
+        {
+          /* Transactions are closed through lookup below */
           PRINTF("Received ACK\n");
         }
         else if (message->type==COAP_TYPE_RST)
@@ -274,6 +266,8 @@ coap_receive(void)
     }
     else
     {
+      coap_message_type_t reply_type = COAP_TYPE_ACK;
+
       PRINTF("ERROR %u: %s\n", coap_error_code, coap_error_message);
       coap_clear_transaction(transaction);
 
@@ -282,8 +276,13 @@ coap_receive(void)
       {
         coap_error_code = INTERNAL_SERVER_ERROR_5_00;
       }
+      if (coap_error_code == PING_RESPONSE)
+      {
+        coap_error_code = 0;
+        reply_type = COAP_TYPE_RST;
+      }
       /* Reuse input buffer for error message. */
-      coap_init_message(message, COAP_TYPE_ACK, coap_error_code, message->mid);
+      coap_init_message(message, reply_type, coap_error_code, message->mid);
       coap_set_payload(message, coap_error_message, strlen(coap_error_message));
       coap_send_message(&UIP_IP_BUF->srcipaddr, UIP_UDP_BUF->srcport, uip_appdata, coap_serialize_message(message, uip_appdata));
     }
@@ -312,28 +311,6 @@ coap_get_rest_method(void *packet)
 /*----------------------------------------------------------------------------*/
 /*- Server part --------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
-
-#define ADD_CHAR_IF_POSSIBLE(char) \
-  if(strpos >= *offset && bufpos < preferred_size) { \
-    buffer[bufpos++] = char; \
-  } \
-  ++strpos
-
-#define ADD_STRING_IF_POSSIBLE(string, op) \
-  tmplen = strlen(string); \
-  if(strpos + tmplen > *offset) { \
-    bufpos += snprintf((char *)buffer + bufpos, \
-                       preferred_size - bufpos + 1, \
-                       "%s", \
-                       string \
-                       + (*offset - (int32_t) strpos > 0 ? \
-                          *offset - (int32_t) strpos : 0)); \
-    if(bufpos op preferred_size) { \
-      PRINTF("res: BREAK at %s (%p)\n", string, resource); \
-      break; \
-    } \
-  } \
-  strpos += tmplen
 
 /* The discover resource is automatically included for CoAP. */
 RESOURCE(well_known_core, METHOD_GET, ".well-known/core", "ct=40");
@@ -419,68 +396,108 @@ well_known_core_handler(void* request, void* response, uint8_t *buffer, uint16_t
       }
 #endif
 
-    PRINTF("res: /%s (%p)\npos: s%d, o%ld, b%d\n", resource->url, resource,
-           strpos, *offset, bufpos);
+      PRINTF("res: /%s (%p)\npos: s%d, o%ld, b%d\n", resource->url, resource, strpos, *offset, bufpos);
 
-    if(strpos > 0) {
-      ADD_CHAR_IF_POSSIBLE(',');
+      if (strpos>0)
+      {
+        if (strpos >= *offset && bufpos < preferred_size)
+        {
+          buffer[bufpos++] = ',';
+        }
+        ++strpos;
+      }
+
+      if (strpos >= *offset && bufpos < preferred_size)
+      {
+        buffer[bufpos++] = '<';
+      }
+      ++strpos;
+
+      if (strpos >= *offset && bufpos < preferred_size)
+      {
+        buffer[bufpos++] = '/';
+      }
+      ++strpos;
+
+      tmplen = strlen(resource->url);
+      if (strpos+tmplen > *offset)
+      {
+        bufpos += snprintf((char *) buffer + bufpos, preferred_size - bufpos + 1,
+                         "%s", resource->url + ((*offset-(int32_t)strpos > 0) ? (*offset-(int32_t)strpos) : 0));
+                                                          /* minimal-net requires these casts */
+        if (bufpos >= preferred_size)
+        {
+          break;
+        }
+      }
+      strpos += tmplen;
+
+      if (strpos >= *offset && bufpos < preferred_size)
+      {
+        buffer[bufpos++] = '>';
+      }
+      ++strpos;
+
+      if (resource->attributes[0])
+      {
+        if (strpos >= *offset && bufpos < preferred_size)
+        {
+          buffer[bufpos++] = ';';
+        }
+        ++strpos;
+
+        tmplen = strlen(resource->attributes);
+        if (strpos+tmplen > *offset)
+        {
+          bufpos += snprintf((char *) buffer + bufpos, preferred_size - bufpos + 1,
+                         "%s", resource->attributes + (*offset-(int32_t)strpos > 0 ? *offset-(int32_t)strpos : 0));
+          if (bufpos >= preferred_size)
+          {
+            break;
+          }
+        }
+        strpos += tmplen;
+      }
+
+      /* buffer full, but resource not completed yet; or: do not break if resource exactly fills buffer. */
+      if (bufpos >= preferred_size && strpos-bufpos > *offset)
+      {
+        PRINTF("res: BREAK at %s (%p)\n", resource->url, resource);
+        break;
+      }
     }
-    ADD_CHAR_IF_POSSIBLE('<');
-    ADD_CHAR_IF_POSSIBLE('/');
-    ADD_STRING_IF_POSSIBLE(resource->url, >=);
-    ADD_CHAR_IF_POSSIBLE('>');
 
-    if(resource->attributes[0]) {
-      ADD_CHAR_IF_POSSIBLE(';');
-      ADD_STRING_IF_POSSIBLE(resource->attributes, >);
+    if (bufpos>0) {
+      PRINTF("BUF %d: %.*s\n", bufpos, bufpos, (char *) buffer);
+
+      coap_set_payload(response, buffer, bufpos );
+      coap_set_header_content_type(response, APPLICATION_LINK_FORMAT);
+    }
+    else if (strpos>0)
+    {
+      PRINTF("well_known_core_handler(): bufpos<=0\n");
+
+      coap_set_status_code(response, BAD_OPTION_4_02);
+      coap_set_payload(response, "BlockOutOfScope", 15);
     }
 
-    /* buffer full, but resource not completed yet; or: do not break if resource exactly fills buffer. */
-    if(bufpos > preferred_size && strpos - bufpos > *offset) {
-      PRINTF("res: BREAK at %s (%p)\n", resource->url, resource);
-      break;
+    if (resource==NULL) {
+      PRINTF("res: DONE\n");
+      *offset = -1;
     }
-  }
-
-  if(bufpos > 0) {
-    PRINTF("BUF %d: %.*s\n", bufpos, bufpos, (char *)buffer);
-
-    coap_set_payload(response, buffer, bufpos);
-    coap_set_header_content_type(response, APPLICATION_LINK_FORMAT);
-  } else if(strpos > 0) {
-    PRINTF("well_known_core_handler(): bufpos<=0\n");
-
-    coap_set_status_code(response, BAD_OPTION_4_02);
-    coap_set_payload(response, "BlockOutOfScope", 15);
-  }
-
-  if(resource == NULL) {
-    PRINTF("res: DONE\n");
-    *offset = -1;
-  } else {
-    PRINTF("res: MORE at %s (%p)\n", resource->url, resource);
-    *offset += preferred_size;
-  }
+    else
+    {
+      PRINTF("res: MORE at %s (%p)\n", resource->url, resource);
+      *offset += preferred_size;
+    }
 }
-/*----------------------------------------------------------------------------*/
-// The dtls-handshake resource is automatically included for CoAP
-// and definied in er-13-dtls/er-dtls-13-resource.c. */
-#ifdef WITH_DTLS
-  RESOURCE(dtls, METHOD_POST | HAS_SUB_RESOURCES, "dtls", "rt=\"dtls.handshake\";if=\"core.lb\";ct=42");
-#endif
 /*----------------------------------------------------------------------------*/
 PROCESS_THREAD(coap_receiver, ev, data)
 {
   PROCESS_BEGIN();
-  #ifdef WITH_DTLS
-    aes_init();
-  #endif
   PRINTF("Starting CoAP-13 receiver...\n");
 
   rest_activate_resource(&resource_well_known_core);
-  #ifdef WITH_DTLS
-    rest_activate_resource(&resource_dtls);
-  #endif
 
   coap_register_as_transaction_handler();
   coap_init_connection(SERVER_LISTEN_PORT);
