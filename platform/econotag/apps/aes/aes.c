@@ -249,12 +249,7 @@ __attribute__((always_inline)) static void cmac_subkey(uint8_t L[16], uint8_t K)
             L[i] |= (L[i+1] >> 7);
         }
         L[15] <<= 1;
-        if (msb) {
-            for (i = 0; i < 15; i++) {
-                L[i] ^= 0;
-            }
-            L[15] ^= 0x87;
-        }
+        if (msb) L[15] ^= 0x87;
         K--;
     }
 }

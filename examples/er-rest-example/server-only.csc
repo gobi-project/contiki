@@ -7,7 +7,8 @@
   <project EXPORT="discard">[APPS_DIR]/collect-view</project>
   <project EXPORT="discard">[APPS_DIR]/powertracker</project>
   <simulation>
-    <title>REST with RPL router</title>
+    <title>Erbium REST with SLIP Radio</title>
+    <speedlimit>1.0</speedlimit>
     <randomseed>123456</randomseed>
     <motedelay_us>1000000</motedelay_us>
     <radiomedium>
@@ -22,11 +23,11 @@
     </events>
     <motetype>
       se.sics.cooja.mspmote.SkyMoteType
-      <identifier>rplroot</identifier>
-      <description>Sky RPL Root</description>
-      <source EXPORT="discard">[CONTIKI_DIR]/examples/ipv6/rpl-border-router/border-router.c</source>
-      <commands EXPORT="discard">make border-router.sky TARGET=sky</commands>
-      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/ipv6/rpl-border-router/border-router.sky</firmware>
+      <identifier>slipradio</identifier>
+      <description>Sky SLIP Radio</description>
+      <source EXPORT="discard">[CONTIKI_DIR]/examples/ipv6/slip-radio/slip-radio.c</source>
+      <commands EXPORT="discard">make slip-radio.sky TARGET=sky</commands>
+      <firmware EXPORT="copy">[CONTIKI_DIR]/examples/ipv6/slip-radio/slip-radio.sky</firmware>
       <moteinterface>se.sics.cooja.interfaces.Position</moteinterface>
       <moteinterface>se.sics.cooja.interfaces.RimeAddress</moteinterface>
       <moteinterface>se.sics.cooja.interfaces.IPAddress</moteinterface>
@@ -78,7 +79,7 @@
         se.sics.cooja.mspmote.interfaces.MspMoteID
         <id>1</id>
       </interface_config>
-      <motetype_identifier>rplroot</motetype_identifier>
+      <motetype_identifier>slipradio</motetype_identifier>
     </mote>
     <mote>
       <breakpoints />
