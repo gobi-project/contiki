@@ -44,8 +44,15 @@ void hibernate(uint32_t timeout, uint8_t kbi_index, uint32_t flags)
   /*
 	Set timeout and hibernate settings
 	*/
-  *CRM_WU_TIMEOUT = timeout;
-  *CRM_SLEEP_CNTL = flags;
+	
+  CRM->WU_CNTLbits.TIMER_WU_EN = 1;
+  CRM->WU_CNTLbits.RTC_WU_EN = 0;	
+  CRM->WU_TIMEOUT = timeout;
+  CRM->SLEEP_CNTL = flags;
+  
+  /* the maca must be off before going to sleep */
+  /* otherwise the mcu will reboot on wakeup */
+  maca_off();
 	
   /* wait for the sleep cycle to complete */	
   while(!bit_is_set(*CRM_STATUS, kbi_index) || !bit_is_set(*CRM_STATUS, 0)) {	
@@ -61,7 +68,14 @@ void hibernate(uint32_t timeout, uint8_t kbi_index, uint32_t flags)
     continue; 
   }
   /* write 1 to sleep_sync --- this clears the bit (it's a r1wc bit) and finishes wakeup */
-  *CRM_STATUS = bit(kbi_index) | bit(0);  	
+  *CRM_STATUS = bit(kbi_index) | bit(0);  
+
+  CRM->WU_CNTLbits.TIMER_WU_EN = 0;
+  CRM->WU_CNTLbits.RTC_WU_EN = 1;	
+  
+  /* reschedule clock ticks */
+  clock_init();
+  clock_adjust_ticks((CRM->WU_COUNT*CLOCK_CONF_SECOND)/rtc_freq);  
 }
 
 /**
