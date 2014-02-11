@@ -474,8 +474,14 @@ __attribute__((always_inline)) static void generateServerHello(uint32_t *buf) {
     nvm_getVar(buf + 16, RES_ECC_BASE_X, LEN_ECC_BASE_X);
     nvm_getVar(buf + 24, RES_ECC_BASE_Y, LEN_ECC_BASE_Y);
     #if DEBUG_ECC
-        printBytes("BASE_POINT-X", (uint8_t *) (buf + 16), 32);
-        printBytes("BASE_POINT-Y", (uint8_t *) (buf + 24), 32);
+        {
+        uint32_t i;
+        printf("BASE_POINT-X: ");
+        for (i = 8; i > 0; i--) printf("%08X", buf[15 + i]);
+        printf("\nBASE_POINT-Y: ");
+        for (i = 8; i > 0; i--) printf("%08X", buf[23 + i]);
+        printf("\n");
+        }
     #endif
     getSessionData((uint8_t *) (buf + 32), src_addr, session_key);
     #if DEBUG_ECC
@@ -486,6 +492,17 @@ __attribute__((always_inline)) static void generateServerHello(uint32_t *buf) {
         uint32_t time = *MACA_CLK;
     #endif
     ecc_ec_mult(buf + 16, buf + 24, buf + 32, buf, buf + 8);
+    uint32_t i;
+    uint8_t *buf08 = (uint8_t *) buf;
+    for (i = 0; i < 16; i++) {
+        buf08[     i] ^= buf08[31 - i];
+        buf08[31 - i] ^= buf08[     i];
+        buf08[     i] ^= buf08[31 - i];
+
+        buf08[32 + i] ^= buf08[63 - i];
+        buf08[63 - i] ^= buf08[32 + i];
+        buf08[32 + i] ^= buf08[63 - i];
+    }
     #if DEBUG
         time = *MACA_CLK - time;
         printf("ECC - BEENDET NACH %u MS\n", time / 250);
@@ -510,8 +527,6 @@ __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_
         printBytes("_C_PUB_KEY-Y", (uint8_t *) cke->public_key.y, 32);
     #endif
 
-    memcpy(buf + 96, cke->public_key.x, 32);
-    memcpy(buf + 128, cke->public_key.y, 32);
     getSessionData((uint8_t *) (buf + 160), src_addr, session_key);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -520,7 +535,20 @@ __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_
         printf("ECC - START\n");
         uint32_t time = *MACA_CLK;
     #endif
+    for (i = 0; i < 32; i++) {
+      buf[ 96 + i] = ((uint8_t *) cke->public_key.x)[31 - i];
+      buf[128 + i] = ((uint8_t *) cke->public_key.y)[31 - i];
+    }
     ecc_ec_mult((uint32_t *) (buf + 96), (uint32_t *) (buf + 128), (uint32_t *) (buf + 160), (uint32_t *) (buf + 20), (uint32_t *) (buf + 52));
+    for (i = 0; i < 16; i++) {
+        buf[20 + i] ^= buf[51 - i];
+        buf[51 - i] ^= buf[20 + i];
+        buf[20 + i] ^= buf[51 - i];
+
+        buf[52 + i] ^= buf[83 - i];
+        buf[83 - i] ^= buf[52 + i];
+        buf[52 + i] ^= buf[83 - i];
+    }
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     // |#|#|#|#|#|   Secret-Px   |   Secret-Py   |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
