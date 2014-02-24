@@ -22,7 +22,7 @@
 #define RES_B_ERR_04     0x1D080
 #define LEN_B_ERR_04     51
 #define RES_B_ERR_03     0x1D100
-#define LEN_B_ERR_03     52
+#define LEN_B_ERR_03     53
 #define RES_B_ERR_02     0x1D180
 #define LEN_B_ERR_02     31
 #define RES_B_ERR_01     0x1D200
