@@ -565,27 +565,27 @@ __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_
     buf[1] = 16;
     getPSK(buf + 2);
     buf[18] = 0;
-    buf[19] = 64;
-    memcpy(buf + 84, "master secret", 13);
-    stack_read(buf + 97, client_random_offset, 28);
-    stack_read(buf + 125, server_random_offset, 28);
+    buf[19] = 32;
+    memcpy(buf + 52, "master secret", 13);
+    stack_read(buf + 65, client_random_offset, 28);
+    stack_read(buf + 93, server_random_offset, 28);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // |016PSK064|   Secret-Px   |   Secret-Py   | "master secret" + C-Rand + S-Rand |#|#|#|#|#|#|#|#|#|#|#|#|#|
+    // |016PSK064|   Secret-Px   | "master secret" + C-Rand + S-Rand |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
     #if DEBUG_PRF
         printf("Seed für Master-Secret:\n    ");
-        for (i = 0; i < 33; i++) printf("%02X", buf[i]);
+        for (i = 0; i < 20; i++) printf("%02X", buf[i]);
         printf("\n    ");
-        for (i = 33; i < 65; i++) printf("%02X", buf[i]);
+        for (i = 20; i < 52; i++) printf("%02X", buf[i]);
         printf("\n    ");
-        for (i = 65; i < 97; i++) printf("%02X", buf[i]);
+        for (i = 52; i < 65; i++) printf("%02X", buf[i]);
         printf("\n    ");
-        for (i = 97; i < 125; i++) printf("%02X", buf[i]);
+        for (i = 65; i < 93; i++) printf("%02X", buf[i]);
         printf("\n    ");
-        for (i = 125; i < 153; i++) printf("%02X", buf[i]);
+        for (i = 93; i < 121; i++) printf("%02X", buf[i]);
         printf("\n");
     #endif
-    prf(buf + 160, 48, buf, 153);
+    prf(buf + 160, 48, buf, 121);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     // |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|     Master-Secret     |
