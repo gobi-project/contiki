@@ -2,6 +2,7 @@
 #ifndef __ER_DTLS_PRF_H__
 #define __ER_DTLS_PRF_H__
 
+#include <stddef.h>
 #include <stdint.h>
 
 /**
@@ -27,7 +28,7 @@
                         herangezogen wird
   * \param  seed_len    Länge der Bytefolge
   */
-void prf(uint8_t *dst, uint8_t len, uint8_t *seed, uint16_t seed_len);
+void prf(uint8_t *dst, uint8_t len, uint8_t *seed, size_t seed_len);
 
 #endif /* __ER_DTLS_PRF_H__ */
 

@@ -20,8 +20,8 @@
 #define DEBUG 1
 #define DEBUG_COOKIE 0
 #define DEBUG_ECC 0
-#define DEBUG_PRF 0
-#define DEBUG_FIN 0
+#define DEBUG_PRF 1
+#define DEBUG_FIN 1
 
 #if DEBUG || DEBUG_COOKIE || DEBUG_ECC || DEBUG_PRF || DEBUG_FIN
     #include <stdio.h>
@@ -336,13 +336,14 @@ __attribute__((always_inline)) static void generateCookie(uint8_t *dst, DTLSCont
         printBytes("Content Data (oc)", (uint8_t *) data, *data_len);
     #endif
 
-    uint8_t mac[16];
-    memset(mac, 0, 16);
     uint8_t psk[16];
     getPSK(psk);
-    aes_cmac(mac, src_addr->u8, 16, psk, 0);
-    aes_cmac(mac, (uint8_t *) data, *data_len, psk, 1);
-    memcpy(dst, mac, 8);
+    CMAC_t state;
+    aes_cmac_init(&state, psk, 16);
+    state.mac = dst;
+    aes_cmac_update(&state, src_addr->u8, 16);
+    aes_cmac_update(&state, (uint8_t *) data, *data_len);
+    aes_cmac_finish(&state);
 }
 
 __attribute__((always_inline)) static AlertDescription checkClientHello(ClientHello_t *clientHello, size_t len) {
@@ -626,12 +627,17 @@ __attribute__((always_inline)) static void generateFinished(uint8_t *buf) {
     memset(buf + 87, 0, 16);
     getPSK(buf + 104);
     stack_read(buf + 120, 0, 16);
+
+    CMAC_t state;
+    aes_cmac_init(&state, buf + 104, 16);
+    state.mac = buf + 87;
     int i;
     for (i = 16; i < stack_size(); i+=16) {
-        aes_cmac(buf + 87, buf + 120, 16, buf + 104, 0);
+        aes_cmac_update(&state, buf + 120, 16);
         stack_read(buf + 120, i, 16);
     }
-    aes_cmac(buf + 87, buf + 120, stack_size() + 16 - i, buf + 104, 1);
+    aes_cmac_update(&state, buf + 120, stack_size() + 16 - i);
+    aes_cmac_finish(&state);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     // |#|#|#|#|#|#|     Master-Secret     |#|#|#|#| C-MAC |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|

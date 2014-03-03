@@ -7,7 +7,7 @@
 
 /*---------------------------------------------------------------------------*/
 
-#define DEBUG 0
+#define DEBUG 1
 
 #if DEBUG
     #include <stdio.h>
@@ -133,83 +133,108 @@ void aes_crypt(uint8_t data[], size_t data_len, uint8_t key[16], uint8_t nonce[N
     for (i = 0; i < MAC_LEN; i++) data[data_len + i] ^= abs_0[i];
 }
 
-void aes_cmac(uint8_t mac[16], uint8_t data[], size_t data_len, uint8_t key[16], uint8_t finish) {
-    uint32_t i;
+void aes_cmac_init(CMAC_t *state, uint8_t *key, size_t raw_key_length) {
+    state->buffer_pos = 0;
+
+    if (raw_key_length == 16) {
+        memcpy(state->key, key, 16);
+        #if DEBUG
+            printf("Key16    ");
+            print_hex(state->key, 16);
+            printf("\n");
+        #endif
+        return;
+    }
+
+    memset(state->key, 0, 16);
+    aes_cmac_update(state, key, raw_key_length);
+    aes_cmac_finish(state);
+    memcpy(state->key, state->mac, 16);
+
+    memset(state->mac, 0, 16);
+    state->buffer_pos = 0;
 
     #if DEBUG
-        if (data_len == 0) {
-            printf("aes_cmac: Ungültiger Aufruf. data_len == 0 ist nicht zulässig.\n");
-            return;
-        }
-        if (!finish && data_len % 16) {
-            printf("aes_cmac: Ungütiger Aufruf. Bei finish == 0 muss data_len ein Vielfaches der Blockgröße sein.\n");
-            return;
-        }
-
-        printf("Key      ");
-        print_hex(key, 16);
+        printf("KeyXX    ");
+        print_hex(state->key, 16);
         printf("\n");
     #endif
+}
+
+void aes_cmac_update(CMAC_t *state, uint8_t *data, size_t data_len) {
+    uint32_t i = 0;
 
     ASM->CONTROL0bits.CLEAR = 1;
-    
-    aes_setData((uint32_t *) &(ASM->KEY0), key, 16);
-
-    uint8_t buf[16];
-    if (finish) {
-        aes_setData((uint32_t *) &(ASM->DATA0), NULL, 0);
-        aes_round();
-        aes_getData(buf, (uint32_t *) &(ASM->CBC0_RESULT), 16);
-        #if DEBUG
-            printf("K0       ");
-            print_hex(buf, 16);
-            printf("\n");
-        #endif
-    }
-
-    aes_setData((uint32_t *) &(ASM->MAC0), mac, 16);
+    aes_setData((uint32_t *) &(ASM->KEY0), state->key, 16);
+    aes_setData((uint32_t *) &(ASM->MAC0), state->mac, 16);
     ASM->CONTROL0bits.LOAD_MAC = 1;
 
-    for (i = 0; 1; i+=16) {
-        if (finish && data_len <= 16) break;
+    while (data_len > 0 && state->buffer_pos < 16) {
+      state->buffer[state->buffer_pos++] = data[i++];
+      data_len -= 1;
+    }
+    if (data_len == 0) return;
 
+    if (data_len > 0) {
+      aes_setData((uint32_t *) &(ASM->DATA0), state->buffer, 16);
+      aes_round();
+    }
+
+    for (; data_len > 16; i+=16) {
         aes_setData((uint32_t *) &(ASM->DATA0), data + i, 16);
         aes_round();
-
         data_len -= 16;
-        if (data_len == 0) break;
+    }
+    memcpy(state->buffer, data + i, data_len);
+    state->buffer_pos = data_len;
+
+    aes_getData(state->mac, (uint32_t *) &(ASM->CBC0_RESULT), 16);
+}
+
+void aes_cmac_finish(CMAC_t *state) {
+    uint32_t i;
+
+    ASM->CONTROL0bits.CLEAR = 1;
+    aes_setData((uint32_t *) &(ASM->KEY0), state->key, 16);
+
+    // Calculate Subkey - BEGIN
+    uint8_t buf[16];
+    aes_setData((uint32_t *) &(ASM->DATA0), NULL, 0);
+    aes_round();
+    aes_getData(buf, (uint32_t *) &(ASM->CBC0_RESULT), 16);
+    #if DEBUG
+        printf("K0       ");
+        print_hex(buf, 16);
+        printf("\n");
+    #endif
+    cmac_subkey(buf, state->buffer_pos == 16 ? 1 : 2);
+    #if DEBUG
+        printf("KX       ");
+        print_hex(buf, 16);
+        printf("\n");
+    #endif
+    // Calculate Subkey - END
+
+    for (i = 0; i < state->buffer_pos; i++) {
+        buf[i] ^= state->buffer[i];
     }
 
-    if (finish) {
-        cmac_subkey(buf, data_len == 16 ? 1 : 2);
-        #if DEBUG
-            printf("KX       ");
-            print_hex(buf, 16);
-            printf("\n");
-        #endif
+    if (i < 16) buf[i] ^= 128;
 
-        uint8_t *last_block = data + i;
+    ASM->CONTROL0bits.CLEAR = 1;
+    aes_setData((uint32_t *) &(ASM->KEY0), state->key, 16);
+    aes_setData((uint32_t *) &(ASM->MAC0), state->mac, 16);
+    ASM->CONTROL0bits.LOAD_MAC = 1;
 
-        for (i = 0; i < data_len; i++) {
-            buf[i] ^= last_block[i];
-        }
+    aes_setData((uint32_t *) &(ASM->DATA0), buf, 16);
+    aes_round();
+    aes_getData(state->mac, (uint32_t *) &(ASM->CBC0_RESULT), 16);
 
-        if (i < 16) {
-            buf[i] ^= 128;
-            for (i++; i < 16; i++) {
-                buf[i] ^= 0;
-            }
-        }
-
-        aes_setData((uint32_t *) &(ASM->DATA0), buf, 16);
-        aes_round();
-    }
-
-    aes_getData(mac, (uint32_t *) &(ASM->CBC0_RESULT), 16);
+    state->buffer_pos = 0;
 
     #if DEBUG
         printf("AES_CMAC ");
-        print_hex(mac, 16);
+        print_hex(state->mac, 16);
         printf("\n");
     #endif
 }
