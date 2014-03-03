@@ -302,8 +302,8 @@ __attribute__((always_inline)) static void generateHelloVerifyRequest(uint8_t *d
     content->payload[0] = 11;
 
     HelloVerifyRequest_t *answer = (HelloVerifyRequest_t *) (content->payload + 1);
-    answer->server_version.major = 3;
-    answer->server_version.minor = 3;
+    answer->server_version.major = 254;
+    answer->server_version.minor = 253;
     answer->cookie_len = cookie_len;
     memcpy(answer->cookie, cookie, cookie_len);
 }
@@ -351,7 +351,7 @@ __attribute__((always_inline)) static AlertDescription checkClientHello(ClientHe
     uint32_t check = 0;
 
     // Version checken
-    if (clientHello->client_version.major != 3 || clientHello->client_version.minor != 3) {
+    if (clientHello->client_version.major != 254 || clientHello->client_version.minor != 253) {
         PRINTF("ClientHello: Nicht unterstützte Protokollversion\n");
         return protocol_version;
     }
@@ -435,8 +435,8 @@ __attribute__((always_inline)) static void generateServerHello(uint32_t *buf) {
     content->payload[0] = sizeof(ServerHello_t) + 10;
 
     ServerHello_t *sh = (ServerHello_t *) (content->payload + content->len);
-    sh->server_version.major = 3;
-    sh->server_version.minor = 3;
+    sh->server_version.major = 254;
+    sh->server_version.minor = 253;
     sh->random.gmt_unix_time = uip_htonl(clock_seconds());
     random_x(sh->random.random_bytes, 28);
     sh->session_id.len = getSessionData(sh->session_id.session_id, src_addr, session_id);
