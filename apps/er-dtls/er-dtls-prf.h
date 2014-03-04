@@ -28,7 +28,15 @@
                         herangezogen wird
   * \param  seed_len    Länge der Bytefolge
   */
-void prf(uint8_t *dst, uint8_t len, uint8_t *seed, size_t seed_len);
+
+//  PRF(secret, label, seed) = P_CMAC(secret, label + seed)
+//
+//  P_CMAC(secret, seed) = CMAC(secret, A(1) + seed) +
+//                         CMAC(secret, A(2) + seed) +
+//                         CMAC(secret, A(3) + seed) + ...
+//  A(0) = seed
+//  A(i) = CMAC(secret, A(i-1))
+void prf(uint8_t *dst, uint8_t len, uint8_t *data, size_t secret_len, size_t seed_len);
 
 #endif /* __ER_DTLS_PRF_H__ */
 
