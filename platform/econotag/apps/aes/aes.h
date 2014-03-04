@@ -61,18 +61,18 @@ void aes_crypt(uint8_t data[], size_t data_len, uint8_t key[16], uint8_t nonce[N
   */
 
 typedef struct {
-    uint8_t *mac;
     uint8_t *raw_key;
     size_t raw_key_length;
     uint8_t key[16];
     uint8_t buffer[16];
     size_t buffer_pos;
-} CMAC_t;
+    uint8_t mac[16];
+} CMAC_State_t;
 
-void aes_cmac_init(CMAC_t *state, uint8_t *key, size_t raw_key_length);
+void aes_cmac_init(CMAC_State_t *state, uint8_t *key, size_t raw_key_length);
 
-void aes_cmac_update(CMAC_t *state, uint8_t *data, size_t data_len);
+void aes_cmac_update(CMAC_State_t *state, uint8_t *data, size_t data_len);
 
-void aes_cmac_finish(CMAC_t *state);
+void aes_cmac_finish(CMAC_State_t *state, uint8_t *mac, size_t mac_len);
 
 #endif /* __AES_H__ */

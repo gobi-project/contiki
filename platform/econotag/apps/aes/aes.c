@@ -7,7 +7,7 @@
 
 /*---------------------------------------------------------------------------*/
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
     #include <stdio.h>
@@ -133,8 +133,9 @@ void aes_crypt(uint8_t data[], size_t data_len, uint8_t key[16], uint8_t nonce[N
     for (i = 0; i < MAC_LEN; i++) data[data_len + i] ^= abs_0[i];
 }
 
-void aes_cmac_init(CMAC_t *state, uint8_t *key, size_t raw_key_length) {
+void aes_cmac_init(CMAC_State_t *state, uint8_t *key, size_t raw_key_length) {
     state->buffer_pos = 0;
+    memset(state->mac, 0, 16);
 
     if (raw_key_length == 16) {
         memcpy(state->key, key, 16);
@@ -148,11 +149,10 @@ void aes_cmac_init(CMAC_t *state, uint8_t *key, size_t raw_key_length) {
 
     memset(state->key, 0, 16);
     aes_cmac_update(state, key, raw_key_length);
-    aes_cmac_finish(state);
-    memcpy(state->key, state->mac, 16);
+    aes_cmac_finish(state, state->key, 16);
 
-    memset(state->mac, 0, 16);
     state->buffer_pos = 0;
+    memset(state->mac, 0, 16);
 
     #if DEBUG
         printf("KeyXX    ");
@@ -161,7 +161,7 @@ void aes_cmac_init(CMAC_t *state, uint8_t *key, size_t raw_key_length) {
     #endif
 }
 
-void aes_cmac_update(CMAC_t *state, uint8_t *data, size_t data_len) {
+void aes_cmac_update(CMAC_State_t *state, uint8_t *data, size_t data_len) {
     uint32_t i = 0;
 
     ASM->CONTROL0bits.CLEAR = 1;
@@ -191,7 +191,7 @@ void aes_cmac_update(CMAC_t *state, uint8_t *data, size_t data_len) {
     aes_getData(state->mac, (uint32_t *) &(ASM->CBC0_RESULT), 16);
 }
 
-void aes_cmac_finish(CMAC_t *state) {
+void aes_cmac_finish(CMAC_State_t *state, uint8_t *mac, size_t mac_len) {
     uint32_t i;
 
     ASM->CONTROL0bits.CLEAR = 1;
@@ -228,13 +228,14 @@ void aes_cmac_finish(CMAC_t *state) {
 
     aes_setData((uint32_t *) &(ASM->DATA0), buf, 16);
     aes_round();
-    aes_getData(state->mac, (uint32_t *) &(ASM->CBC0_RESULT), 16);
+    aes_getData(mac, (uint32_t *) &(ASM->CBC0_RESULT), mac_len);
 
     state->buffer_pos = 0;
+    memset(state->mac, 0, 16);
 
     #if DEBUG
         printf("AES_CMAC ");
-        print_hex(state->mac, 16);
+        print_hex(mac, mac_len);
         printf("\n");
     #endif
 }
