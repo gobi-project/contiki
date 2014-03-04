@@ -20,8 +20,8 @@
 #define DEBUG 1
 #define DEBUG_COOKIE 0
 #define DEBUG_ECC 0
-#define DEBUG_PRF 0
-#define DEBUG_FIN 0
+#define DEBUG_PRF 1
+#define DEBUG_FIN 1
 
 #if DEBUG || DEBUG_COOKIE || DEBUG_ECC || DEBUG_PRF || DEBUG_FIN
     #include <stdio.h>
@@ -122,7 +122,7 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                 // dieser aber zur Berechnung des Finished-Hash benötigt wird.
                 stack_init();
                 stack_push(big_msg, big_msg_len);
-                client_random_offset = (uint32_t) clienthello->random.random_bytes - (uint32_t) big_msg;
+                client_random_offset = (uint32_t) &clienthello->random - (uint32_t) big_msg;
 
                 // Übertragenen Cookie in Buffer sichern zum späteren Vergleich
                 memcpy(old_cookie, clienthello->data + 1, cookie_len);
@@ -455,7 +455,7 @@ __attribute__((always_inline)) static void generateServerHello(uint32_t *buf) {
     // Keine "Supported Point Formats Extension" entspricht "Uncompressed only"
     stack_push((uint8_t *) buf, sizeof(DTLSContent_t) + 1 + sizeof(ServerHello_t) + 10);
 
-    server_random_offset = created_offset + (uint32_t) sh->random.random_bytes - (uint32_t) buf;
+    server_random_offset = created_offset + (uint32_t) &sh->random - (uint32_t) buf;
 
     //ServerKeyExchange
     content->type = server_key_exchange;
@@ -567,11 +567,11 @@ __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_
     buf[18] = 0;
     buf[19] = 32;
     memcpy(buf + 52, "master secret", 13);
-    stack_read(buf + 65, client_random_offset, 28);
-    stack_read(buf + 93, server_random_offset, 28);
+    stack_read(buf + 65, client_random_offset, 32);
+    stack_read(buf + 97, server_random_offset, 32);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // |016PSK064|   Secret-Px   | "master secret" + C-Rand + S-Rand |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
+    // |016PSK064|   Secret-Px   |   "master secret" + C-Rand + S-Rand   |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
     #if DEBUG_PRF
         printf("Seed für Master-Secret:\n    ");
         for (i = 0; i < 20; i++) printf("%02X", buf[i]);
@@ -580,31 +580,31 @@ __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_
         printf("\n    ");
         for (i = 52; i < 65; i++) printf("%02X", buf[i]);
         printf("\n    ");
-        for (i = 65; i < 93; i++) printf("%02X", buf[i]);
+        for (i = 65; i < 97; i++) printf("%02X", buf[i]);
         printf("\n    ");
-        for (i = 93; i < 121; i++) printf("%02X", buf[i]);
+        for (i = 97; i < 129; i++) printf("%02X", buf[i]);
         printf("\n");
     #endif
-    prf(buf + 124, 48, buf, 52, 69);
+    prf(buf + 132, 48, buf, 52, 77);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|     Master-Secret     |#|#|#|#|#|#|#|#|#|
+    // |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|     Master-Secret     |#|#|#|#|#|#|#|
     #if DEBUG_PRF
         printf("Master-Secret:\n    ");
-        for (i = 124; i < 148; i++) printf("%02X", buf[i]);
+        for (i = 132; i < 156; i++) printf("%02X", buf[i]);
         printf("\n    ");
-        for (i = 148; i < 172; i++) printf("%02X", buf[i]);
+        for (i = 156; i < 180; i++) printf("%02X", buf[i]);
         printf("\n");
     #endif
 
-    memcpy(buf + 40, buf + 124, 48);
+    memcpy(buf + 40, buf + 132, 48);
     memcpy(buf + 88, "key expansion", 13);
-    stack_read(buf + 101, server_random_offset, 28);
-    stack_read(buf + 129, client_random_offset, 28);
+    stack_read(buf + 101, server_random_offset, 32);
+    stack_read(buf + 133, client_random_offset, 32);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // |#|#|#|#|#|#|#|#|#|#|     Master-Secret     | "key expansion" + S-Rand + C-Rand |#|#|#|#|#|#|#|#|#|#|#|#|
-    prf(buf, 40, buf + 40, 48, 69);
+    // |#|#|#|#|#|#|#|#|#|#|     Master-Secret     |   "key expansion" + S-Rand + C-Rand   |#|#|#|#|#|#|#|#|#|#|
+    prf(buf, 40, buf + 40, 48, 77);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     // |     Key-Block     |     Master-Secret     |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
