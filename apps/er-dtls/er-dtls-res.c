@@ -338,11 +338,11 @@ __attribute__((always_inline)) static void generateCookie(uint8_t *dst, DTLSCont
 
     uint8_t psk[16];
     getPSK(psk);
-    CMAC_State_t state;
-    aes_cmac_init(&state, psk, 16);
-    aes_cmac_update(&state, src_addr->u8, 16);
-    aes_cmac_update(&state, (uint8_t *) data, *data_len);
-    aes_cmac_finish(&state, dst, 8);
+    CMAC_CTX ctx;
+    aes_cmac_init(&ctx, psk, 16);
+    aes_cmac_update(&ctx, src_addr->u8, 16);
+    aes_cmac_update(&ctx, (uint8_t *) data, *data_len);
+    aes_cmac_finish(&ctx, dst, 8);
 }
 
 __attribute__((always_inline)) static AlertDescription checkClientHello(ClientHello_t *clientHello, size_t len) {
@@ -627,15 +627,15 @@ __attribute__((always_inline)) static void generateFinished(uint8_t *buf) {
     getPSK(buf + 104);
     stack_read(buf + 120, 0, 16);
 
-    CMAC_State_t state;
-    aes_cmac_init(&state, buf + 104, 16);
+    CMAC_CTX ctx;
+    aes_cmac_init(&ctx, buf + 104, 16);
     int i;
     for (i = 16; i < stack_size(); i+=16) {
-        aes_cmac_update(&state, buf + 120, 16);
+        aes_cmac_update(&ctx, buf + 120, 16);
         stack_read(buf + 120, i, 16);
     }
-    aes_cmac_update(&state, buf + 120, stack_size() + 16 - i);
-    aes_cmac_finish(&state, buf + 87, 16);
+    aes_cmac_update(&ctx, buf + 120, stack_size() + 16 - i);
+    aes_cmac_finish(&ctx, buf + 87, 16);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     // |#|#|#|#|#|#|     Master-Secret     |#|#|#|#| C-MAC |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|

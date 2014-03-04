@@ -133,50 +133,50 @@ void aes_crypt(uint8_t data[], size_t data_len, uint8_t key[16], uint8_t nonce[N
     for (i = 0; i < MAC_LEN; i++) data[data_len + i] ^= abs_0[i];
 }
 
-void aes_cmac_init(CMAC_State_t *state, uint8_t *key, size_t raw_key_length) {
-    state->buffer_pos = 0;
-    memset(state->mac, 0, 16);
+void aes_cmac_init(CMAC_CTX *ctx, uint8_t *key, size_t key_length) {
+    ctx->buf_pos = 0;
+    memset(ctx->mac, 0, 16);
 
-    if (raw_key_length == 16) {
-        memcpy(state->key, key, 16);
+    if (key_length == 16) {
+        memcpy(ctx->key, key, 16);
         #if DEBUG
             printf("Key16    ");
-            print_hex(state->key, 16);
+            print_hex(ctx->key, 16);
             printf("\n");
         #endif
         return;
     }
 
-    memset(state->key, 0, 16);
-    aes_cmac_update(state, key, raw_key_length);
-    aes_cmac_finish(state, state->key, 16);
+    memset(ctx->key, 0, 16);
+    aes_cmac_update(ctx, key, key_length);
+    aes_cmac_finish(ctx, ctx->key, 16);
 
-    state->buffer_pos = 0;
-    memset(state->mac, 0, 16);
+    ctx->buf_pos = 0;
+    memset(ctx->mac, 0, 16);
 
     #if DEBUG
         printf("KeyXX    ");
-        print_hex(state->key, 16);
+        print_hex(ctx->key, 16);
         printf("\n");
     #endif
 }
 
-void aes_cmac_update(CMAC_State_t *state, uint8_t *data, size_t data_len) {
+void aes_cmac_update(CMAC_CTX *ctx, uint8_t *data, size_t data_len) {
     uint32_t i = 0;
 
     ASM->CONTROL0bits.CLEAR = 1;
-    aes_setData((uint32_t *) &(ASM->KEY0), state->key, 16);
-    aes_setData((uint32_t *) &(ASM->MAC0), state->mac, 16);
+    aes_setData((uint32_t *) &(ASM->KEY0), ctx->key, 16);
+    aes_setData((uint32_t *) &(ASM->MAC0), ctx->mac, 16);
     ASM->CONTROL0bits.LOAD_MAC = 1;
 
-    while (data_len > 0 && state->buffer_pos < 16) {
-      state->buffer[state->buffer_pos++] = data[i++];
+    while (data_len > 0 && ctx->buf_pos < 16) {
+      ctx->buf[ctx->buf_pos++] = data[i++];
       data_len -= 1;
     }
     if (data_len == 0) return;
 
     if (data_len > 0) {
-      aes_setData((uint32_t *) &(ASM->DATA0), state->buffer, 16);
+      aes_setData((uint32_t *) &(ASM->DATA0), ctx->buf, 16);
       aes_round();
     }
 
@@ -185,53 +185,53 @@ void aes_cmac_update(CMAC_State_t *state, uint8_t *data, size_t data_len) {
         aes_round();
         data_len -= 16;
     }
-    memcpy(state->buffer, data + i, data_len);
-    state->buffer_pos = data_len;
+    memcpy(ctx->buf, data + i, data_len);
+    ctx->buf_pos = data_len;
 
-    aes_getData(state->mac, (uint32_t *) &(ASM->CBC0_RESULT), 16);
+    aes_getData(ctx->mac, (uint32_t *) &(ASM->CBC0_RESULT), 16);
 }
 
-void aes_cmac_finish(CMAC_State_t *state, uint8_t *mac, size_t mac_len) {
+void aes_cmac_finish(CMAC_CTX *ctx, uint8_t *mac, size_t mac_len) {
     uint32_t i;
 
     ASM->CONTROL0bits.CLEAR = 1;
-    aes_setData((uint32_t *) &(ASM->KEY0), state->key, 16);
+    aes_setData((uint32_t *) &(ASM->KEY0), ctx->key, 16);
 
     // Calculate Subkey - BEGIN
-    uint8_t buf[16];
+    uint8_t subkey[16];
     aes_setData((uint32_t *) &(ASM->DATA0), NULL, 0);
     aes_round();
-    aes_getData(buf, (uint32_t *) &(ASM->CBC0_RESULT), 16);
+    aes_getData(subkey, (uint32_t *) &(ASM->CBC0_RESULT), 16);
     #if DEBUG
         printf("K0       ");
-        print_hex(buf, 16);
+        print_hex(subkey, 16);
         printf("\n");
     #endif
-    cmac_subkey(buf, state->buffer_pos == 16 ? 1 : 2);
+    cmac_subkey(subkey, ctx->buf_pos == 16 ? 1 : 2);
     #if DEBUG
         printf("KX       ");
-        print_hex(buf, 16);
+        print_hex(subkey, 16);
         printf("\n");
     #endif
     // Calculate Subkey - END
 
-    for (i = 0; i < state->buffer_pos; i++) {
-        buf[i] ^= state->buffer[i];
+    for (i = 0; i < ctx->buf_pos; i++) {
+        subkey[i] ^= ctx->buf[i];
     }
 
-    if (i < 16) buf[i] ^= 128;
+    if (i < 16) subkey[i] ^= 128;
 
     ASM->CONTROL0bits.CLEAR = 1;
-    aes_setData((uint32_t *) &(ASM->KEY0), state->key, 16);
-    aes_setData((uint32_t *) &(ASM->MAC0), state->mac, 16);
+    aes_setData((uint32_t *) &(ASM->KEY0), ctx->key, 16);
+    aes_setData((uint32_t *) &(ASM->MAC0), ctx->mac, 16);
     ASM->CONTROL0bits.LOAD_MAC = 1;
 
-    aes_setData((uint32_t *) &(ASM->DATA0), buf, 16);
+    aes_setData((uint32_t *) &(ASM->DATA0), subkey, 16);
     aes_round();
     aes_getData(mac, (uint32_t *) &(ASM->CBC0_RESULT), mac_len);
 
-    state->buffer_pos = 0;
-    memset(state->mac, 0, 16);
+    ctx->buf_pos = 0;
+    memset(ctx->mac, 0, 16);
 
     #if DEBUG
         printf("AES_CMAC ");
