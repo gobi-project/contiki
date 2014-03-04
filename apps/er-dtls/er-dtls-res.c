@@ -184,7 +184,7 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
             processClientKeyExchange((KeyExchange_t *) (content->payload + content->len), buf);
             //  0                   1                   2                   3                   4                   5
             //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-            // |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|     Master-Secret     |
+            // |#|#|#|#|#|#|#|#|#|#|     Master-Secret     |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
             generateFinished(buf);
             //  0                   1                   2                   3                   4                   5
             //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -585,29 +585,29 @@ __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_
         for (i = 93; i < 121; i++) printf("%02X", buf[i]);
         printf("\n");
     #endif
-    prf(buf + 160, 48, buf, 52, 69);
+    prf(buf + 124, 48, buf, 52, 69);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|     Master-Secret     |
+    // |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|     Master-Secret     |#|#|#|#|#|#|#|#|#|
     #if DEBUG_PRF
         printf("Master-Secret:\n    ");
-        for (i = 160; i < 184; i++) printf("%02X", buf[i]);
+        for (i = 124; i < 148; i++) printf("%02X", buf[i]);
         printf("\n    ");
-        for (i = 184; i < 208; i++) printf("%02X", buf[i]);
+        for (i = 148; i < 172; i++) printf("%02X", buf[i]);
         printf("\n");
     #endif
 
-    memcpy(buf + 40, buf + 160, 48);
+    memcpy(buf + 40, buf + 124, 48);
     memcpy(buf + 88, "key expansion", 13);
     stack_read(buf + 101, server_random_offset, 28);
     stack_read(buf + 129, client_random_offset, 28);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // |#|#|#|#|#|#|#|#|#|#|     Master-Secret     | "key expansion" + S-Rand + C-Rand |     Master-Secret     |
+    // |#|#|#|#|#|#|#|#|#|#|     Master-Secret     | "key expansion" + S-Rand + C-Rand |#|#|#|#|#|#|#|#|#|#|#|#|
     prf(buf, 40, buf + 40, 48, 69);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // |     Key-Block     |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|     Master-Secret     |
+    // |     Key-Block     |     Master-Secret     |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
     #if DEBUG_PRF
         printf("Key-Block:\n    ");
         for (i = 0; i < 20; i++) printf("%02X", buf[i]);
@@ -618,39 +618,38 @@ __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_
     insertKeyBlock(src_addr, (KeyBlock_t *) buf);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|     Master-Secret     |
+    // |#|#|#|#|#|#|#|#|#|#|     Master-Secret     |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
 }
 
 __attribute__((always_inline)) static void generateFinished(uint8_t *buf) {
-    memcpy(buf + 24, buf + 160, 48);
-    memset(buf + 87, 0, 16);
-    getPSK(buf + 104);
-    stack_read(buf + 120, 0, 16);
+    memset(buf + 103, 0, 16);
+    getPSK(buf + 120);
+    stack_read(buf + 136, 0, 16);
 
     CMAC_CTX ctx;
-    aes_cmac_init(&ctx, buf + 104, 16);
+    aes_cmac_init(&ctx, buf + 120, 16);
     int i;
     for (i = 16; i < stack_size(); i+=16) {
-        aes_cmac_update(&ctx, buf + 120, 16);
-        stack_read(buf + 120, i, 16);
+        aes_cmac_update(&ctx, buf + 136, 16);
+        stack_read(buf + 136, i, 16);
     }
-    aes_cmac_update(&ctx, buf + 120, stack_size() + 16 - i);
-    aes_cmac_finish(&ctx, buf + 87, 16);
+    aes_cmac_update(&ctx, buf + 136, stack_size() + 16 - i);
+    aes_cmac_finish(&ctx, buf + 103, 16);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // |#|#|#|#|#|#|     Master-Secret     |#|#|#|#| C-MAC |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
+    // |#|#|#|#|#|#|#|#|#|#|     Master-Secret     |#|#|#|#| C-MAC |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
 
-    memcpy(buf + 72, "client finished", 15);
-    prf(buf, 12, buf + 24, 48, 31);
+    memcpy(buf + 88, "client finished", 15);
+    prf(buf, 12, buf + 40, 48, 31);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // | C-F |#|#|#|     Master-Secret     |#|#|#|#| C-MAC |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
+    // | C-F |#|#|#|#|#|#|#|     Master-Secret     |#|#|#|#| C-MAC |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
     #if DEBUG_PRF
         printBytes("Client Finished", buf, 12);
     #endif
 
-    memcpy(buf + 72, "server finished", 15);
-    prf(buf + 12, 12, buf + 24, 48, 31);
+    memcpy(buf + 88, "server finished", 15);
+    prf(buf + 12, 12, buf + 40, 48, 31);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     // | C-F | S-F |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
