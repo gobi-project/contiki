@@ -124,13 +124,14 @@ void dtls_parse_message(DTLSRecord_t *record, uint8_t len, CoapData_t *coapdata)
         }
     }
 
-    if (type == handshake) {
-        if (checkCoapURI(payload, len)) {
-            PRINTF("Im Handshake ist nur die Ressource /dtls erlaubt\n");
-            sendAlert(addr, UIP_UDP_BUF->srcport, fatal, illegal_parameter);
-            return;
-        }
-    }
+//    WARNING: !!! -> disabled for testing purpose
+//    if (type == handshake) {
+//        if (checkCoapURI(payload, len)) {
+//            PRINTF("Im Handshake ist nur die Ressource /dtls erlaubt\n");
+//            sendAlert(addr, UIP_UDP_BUF->srcport, fatal, illegal_parameter);
+//            return;
+//        }
+//    }
 
     if (type == alert) {
         PRINTF("Alert erhalten.\n");
