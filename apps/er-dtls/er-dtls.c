@@ -117,11 +117,12 @@ void dtls_parse_message(DTLSRecord_t *record, uint8_t len, CoapData_t *coapdata)
             return;
         }
 
-        if (type == application_data) {
-            PRINTF("Anwendungsdaten werden in Epoche 0 nicht akzeptiert\n");
-            sendAlert(addr, UIP_UDP_BUF->srcport, fatal, unexpected_message);
-            return;
-        }
+//        WARNING: !!! -> disabled for testing purpose
+//        if (type == application_data) {
+//            PRINTF("Anwendungsdaten werden in Epoche 0 nicht akzeptiert\n");
+//            sendAlert(addr, UIP_UDP_BUF->srcport, fatal, unexpected_message);
+//            return;
+//        }
     }
 
 //    WARNING: !!! -> disabled for testing purpose
