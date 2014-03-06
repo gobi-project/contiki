@@ -50,7 +50,7 @@ __attribute__((always_inline)) static void generateCookie(uint8_t *dst, DTLSCont
 __attribute__((always_inline)) static AlertDescription checkClientHello(ClientHello_t *clientHello, size_t len);
 __attribute__((always_inline)) static void generateServerHello(uint32_t *buf);
 __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_t *cke, uint8_t *buf);
-__attribute__((always_inline)) static void generateFinished(uint8_t *buf);
+__attribute__((always_inline)) static void generateFinished(uint8_t *buf, uint8_t *client_finished);
 
 void sendServerHello(void *data, void* resp);
 __attribute__((always_inline)) static int readServerHello(void *target, uint8_t offset, uint8_t size);
@@ -178,18 +178,15 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
 
             coap_separate_accept(request, request_metadata); // ACK + Anfrageinformationen zwischenspeichern
 
-            stack_push(big_msg, sizeof(DTLSContent_t) + content->len + sizeof(KeyExchange_t));
+            uint32_t key_exchange_length = sizeof(DTLSContent_t) + content->len + sizeof(KeyExchange_t);
+            stack_push(big_msg, key_exchange_length);
 
             // ClientKeyExchange wird ausgewertet und ein KeyBlock berechnet
             processClientKeyExchange((KeyExchange_t *) (content->payload + content->len), buf);
             //  0                   1                   2                   3                   4                   5
             //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
             // |#|#|#|#|#|#|#|#|#|#|     Master-Secret     |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
-            generateFinished(buf);
-            //  0                   1                   2                   3                   4                   5
-            //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-            // | C-F | S-F |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
-            content += (sizeof(DTLSContent_t) + content->len + sizeof(KeyExchange_t));
+            content += key_exchange_length;
 
             coap_transaction_t *transaction = NULL;
             transaction = coap_new_transaction(request_metadata->mid, &request_metadata->addr, request_metadata->port);
@@ -206,25 +203,25 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
             if (content->type == c_change_cipher_spec) {
                 content += 3;
 
-                getSessionData(buf + 28, src_addr, session_epoch);
-                buf[29]++;
-                if (buf[29] == 0) buf[28]++;
+                getSessionData(buf + 32, src_addr, session_epoch);
+                buf[33]++;
+                if (buf[33] == 0) buf[32]++;
                 fpoint_t key_block;
-                key_block = getKeyBlock(src_addr, (buf[28] << 8) + buf[29], 0);
-                nvm_getVar(buf + 24, key_block + KEY_BLOCK_CLIENT_IV, 4);
-                memset(buf + 30, 0, 6);
-                nvm_getVar(buf + 36, key_block + KEY_BLOCK_CLIENT_KEY, 16);
+                key_block = getKeyBlock(src_addr, (buf[32] << 8) + buf[33], 0);
+                nvm_getVar(buf + 28, key_block + KEY_BLOCK_CLIENT_IV, 4);
+                memset(buf + 34, 0, 6);
+                nvm_getVar(buf + 12, key_block + KEY_BLOCK_CLIENT_KEY, 16);
                 //  0                   1                   2                   3                   4                   5
                 //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-                // | C-F | S-F |Nonce|  Key  |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
+                // |#|#|#|  Key  |Nonce|     Master-Secret     |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
                 #if DEBUG_FIN
-                    printBytes("Nonce zum Entschlüsseln von Finished", buf + 24, 12);
-                    printBytes("Key zum Entschlüsseln von Finished", buf + 36, 16);
+                    printBytes("Nonce zum Entschlüsseln von Finished", buf + 28, 12);
+                    printBytes("Key zum Entschlüsseln von Finished", buf + 12, 16);
                 #endif
-                memcpy(buf + 52, ((uint8_t *) content) + 14, MAC_LEN);
-                aes_crypt((uint8_t *) content, 14, buf + 36, buf + 24, 0);
-                aes_crypt((uint8_t *) content, 14, buf + 36, buf + 24, 1);
-                if (memcmp(buf + 52, ((uint8_t *) content) + 14, MAC_LEN)) {
+                memcpy(buf + 88, ((uint8_t *) content) + 14, MAC_LEN);
+                aes_crypt((uint8_t *) content, 14, buf + 12, buf + 28, 0);
+                aes_crypt((uint8_t *) content, 14, buf + 12, buf + 28, 1);
+                if (memcmp(buf + 88, ((uint8_t *) content) + 14, MAC_LEN)) {
                     PRINTF("DTLS-MAC-Fehler im Finished. Paket ungültig\n");
                     generateAlert(response, buffer, decrypt_error); // nicht bad_record_mac weil finished betroffen
                     goto dtls_handler_end;
@@ -239,6 +236,14 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                 #if DEBUG_FIN
                     printBytes("Client Finished gefunden", ((uint8_t *) content) + 2, 12);
                 #endif
+
+                //  0                   1                   2                   3                   4                   5
+                //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                // |#|#|#|#|#|#|#|Nonce|     Master-Secret     |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
+                generateFinished(buf, (uint8_t *) content);
+                //  0                   1                   2                   3                   4                   5
+                //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                // | C-F | S-F |#|Nonce|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
 
                 if (memcmp(buf, ((uint8_t *) content) + 2, 12)) {
                     PRINTF("Erhaltenes Client-Finished stimmt nicht\n");
@@ -262,13 +267,13 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                 c->payload[0] = 20;
                 memcpy(c->payload + 1, buf + 12, 12);
 
-                nvm_getVar(buf + 24, key_block + KEY_BLOCK_SERVER_IV, 4);
-                nvm_getVar(buf + 36, key_block + KEY_BLOCK_SERVER_KEY, 16);
+                nvm_getVar(buf + 28, key_block + KEY_BLOCK_SERVER_IV, 4);
+                nvm_getVar(buf + 40, key_block + KEY_BLOCK_SERVER_KEY, 16);
                 #if DEBUG_FIN
-                    printBytes("Nonce zum Verschlüsseln von Finished", buf + 24, 12);
-                    printBytes("Key zum Verschlüsseln von Finished", buf + 36, 16);
+                    printBytes("Nonce zum Verschlüsseln von Finished", buf + 28, 12);
+                    printBytes("Key zum Verschlüsseln von Finished", buf + 40, 16);
                 #endif
-                aes_crypt(buffer + 3, 14, buf + 36, buf + 24, 0);
+                aes_crypt(buffer + 3, 14, buf + 40, buf + 28, 0);
 
                 coap_set_payload(response, buffer, 25);
             } else {
@@ -621,38 +626,56 @@ __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_
     // |#|#|#|#|#|#|#|#|#|#|     Master-Secret     |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
 }
 
-__attribute__((always_inline)) static void generateFinished(uint8_t *buf) {
+__attribute__((always_inline)) static void generateFinished(uint8_t *buf, uint8_t *client_finished) {
     memset(buf + 103, 0, 16);
     getPSK(buf + 120);
-    stack_read(buf + 136, 0, 16);
 
+    int i;
     CMAC_CTX ctx;
     aes_cmac_init(&ctx, buf + 120, 16);
-    int i;
+
+    for (i = 0; i < stack_size(); i++) {
+      stack_read(buf + 136, i, 1);
+      aes_cmac_update(&ctx, buf + 136, 1);
+    }
+    aes_cmac_finish(&ctx, buf + 103, 16);
+/*
+    stack_read(buf + 136, 0, 16);
     for (i = 16; i < stack_size(); i+=16) {
         aes_cmac_update(&ctx, buf + 136, 16);
         stack_read(buf + 136, i, 16);
     }
     aes_cmac_update(&ctx, buf + 136, stack_size() + 16 - i);
-    aes_cmac_finish(&ctx, buf + 103, 16);
+*/
+
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // |#|#|#|#|#|#|#|#|#|#|     Master-Secret     |#|#|#|#| C-MAC |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
+    // |#|#|#|#|#|#|#|Nonce|     Master-Secret     |#|#|#|#| C-MAC |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
 
     memcpy(buf + 88, "client finished", 15);
     prf(buf, 12, buf + 40, 48, 31);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // | C-F |#|#|#|#|#|#|#|     Master-Secret     |#|#|#|#| C-MAC |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
+    // | C-F |#|#|#|#|Nonce|     Master-Secret     |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
     #if DEBUG_PRF
         printBytes("Client Finished", buf, 12);
     #endif
+
+    for (i = 0; i < stack_size(); i++) {
+      stack_read(buf + 136, i, 1);
+      aes_cmac_update(&ctx, buf + 136, 1);
+    }
+    aes_cmac_update(&ctx, client_finished, 14);
+    aes_cmac_finish(&ctx, buf + 103, 16);
+    //  0                   1                   2                   3                   4                   5
+    //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    // | C-F |#|#|#|#|Nonce|     Master-Secret     |#|#|#|#| C-MAC |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
 
     memcpy(buf + 88, "server finished", 15);
     prf(buf + 12, 12, buf + 40, 48, 31);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    // | C-F | S-F |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
+    // | C-F | S-F |#|Nonce|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
     #if DEBUG_PRF
         printBytes("Server Finished", buf + 12, 12);
     #endif
