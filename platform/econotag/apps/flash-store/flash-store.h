@@ -9,14 +9,14 @@
 // 0x1A000 - 0x1AFFF Random Zugriff Block 2.1
 // 0x1B000 - 0x1BFFF Random Zugriff Block 2.2
 // 0x1C000 - 0x1CFFF Stack ohne Pop-Funktion
-// 0x1D000 - 0x1DFFF Fehlermeldungen
+// 0x1D000 - 0x1DFFF Fehlermeldungen / SenML-Antworten
 // 0x1E000 - 0x1EFFF MAC, UUID, PSK, ECC-Base-Point, Name, Model, Flashzeitpunkt
 // 0x1F000 - 0x1FFFF Systemreserviert
 
 #define RES_STACK        0x1C000
 #define LEN_STACK        0x1000
 
-//Read Only Fehlermeldungen
+//Read Only Fehlermeldungen / SenML-Antworten
 #define RES_B_ERR_05     0x1D000
 #define LEN_B_ERR_05     73
 #define RES_B_ERR_04     0x1D080
@@ -27,6 +27,9 @@
 #define LEN_B_ERR_02     31
 #define RES_B_ERR_01     0x1D200
 #define LEN_B_ERR_01     61
+
+#define RES_SENML_BIN    0x1D280
+#define LEN_SENML_BIN    37
 
 //Read Only Vars
 #define RES_CONFIG       0x1E000
