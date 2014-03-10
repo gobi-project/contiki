@@ -8,52 +8,13 @@
 // 0x19000 - 0x19FFF Random Zugriff Block 1.2
 // 0x1A000 - 0x1AFFF Random Zugriff Block 2.1
 // 0x1B000 - 0x1BFFF Random Zugriff Block 2.2
-// 0x1C000 - 0x1CFFF Stack ohne Pop-Funktion
-// 0x1D000 - 0x1DFFF Fehlermeldungen / SenML-Antworten
-// 0x1E000 - 0x1EFFF MAC, UUID, PSK, ECC-Base-Point, Name, Model, Flashzeitpunkt
-// 0x1F000 - 0x1FFFF Systemreserviert
+// 0x1C000 - 0x1CFFF Stack without pop function
+// 0x1D000 - 0x1DFFF Userdefinied
+// 0x1E000 - 0x1EFFF Userdefinied
+// 0x1F000 - 0x1FFFF Systemreserved
 
 #define RES_STACK        0x1C000
 #define LEN_STACK        0x1000
-
-//Read Only Fehlermeldungen / CoRE-Link- und SenML-Antworten
-#define RES_B_ERR_05     0x1D000
-#define LEN_B_ERR_05     73
-#define RES_B_ERR_04     0x1D080
-#define LEN_B_ERR_04     51
-#define RES_B_ERR_03     0x1D100
-#define LEN_B_ERR_03     53
-#define RES_B_ERR_02     0x1D180
-#define LEN_B_ERR_02     31
-#define RES_B_ERR_01     0x1D200
-#define LEN_B_ERR_01     61
-
-#define RES_D_CORE       0x1D280
-#define LEN_D_CORE       184
-#define RES_SENML_BIN    0x1D380
-#define LEN_SENML_BIN    38
-
-//Read Only Vars
-#define RES_CONFIG       0x1E000
-#define LEN_CONFIG       0x20
-#define RES_UUID         0x1E020
-#define LEN_UUID         0x10
-#define RES_PSK          0x1E030
-#define LEN_PSK          0x10
-#define RES_ANSCHARS     0x1E040
-#define LEN_ANSCHARS     0x40
-#define RES_ECC_BASE_X   0x1E080
-#define LEN_ECC_BASE_X   0x20
-#define RES_ECC_BASE_Y   0x1E0A0
-#define LEN_ECC_BASE_Y   0x20
-#define RES_ECC_ORDER    0x1E0C0
-#define LEN_ECC_ORDER    0x20
-#define RES_NAME         0x1E0E0
-#define LEN_NAME         0x0F
-#define RES_MODEL        0x1E100
-#define LEN_MODEL        0x0E
-#define RES_FLASHTIME    0x1E120
-#define LEN_FLASHTIME    0x04
 
 //Random Access Vars - Byte 0 bis 8192
 #define RES_BLK_1_ACTIVE       0

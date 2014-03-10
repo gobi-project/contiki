@@ -3,9 +3,10 @@
 #include <string.h>
 
 #include "ecc.h"
-#include "flash-store.h"
 #include "er-dtls-random.h"
 #include "er-dtls-psk.h"
+#include "flash-store.h"
+#include "storage.h"
 
 /*---------------------------------------------------------------------------*/
 

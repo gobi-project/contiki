@@ -16,12 +16,13 @@
 #include "aes.h"
 #include "ecc.h"
 #include "flash-store.h"
+#include "storage.h"
 
 #define DEBUG 1
 #define DEBUG_COOKIE 0
 #define DEBUG_ECC 0
-#define DEBUG_PRF 1
-#define DEBUG_FIN 1
+#define DEBUG_PRF 0
+#define DEBUG_FIN 0
 
 #if DEBUG || DEBUG_COOKIE || DEBUG_ECC || DEBUG_PRF || DEBUG_FIN
     #include <stdio.h>
