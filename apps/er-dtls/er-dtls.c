@@ -6,7 +6,7 @@
 #include "er-dtls-data.h"
 #include "er-dtls-alert.h"
 
-#include "aes.h"
+#include "ccm.h"
 
 /*---------------------------------------------------------------------------*/
 

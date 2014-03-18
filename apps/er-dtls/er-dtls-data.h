@@ -8,15 +8,15 @@
 #include "flash-store.h"
 #include "contiki-net.h"
 
-typedef struct { // 16 + 8 + 2 + 2 + 32 = 60
+typedef struct { // 4 + 16 + 2 + 2 + 8 + 32 = 64
+    uint32_t valid;    // Platz ist frei oder wird benutzt
     uip_ipaddr_t addr;
-    uint8_t session[8];
+    uint16_t port;
     uint16_t epoch;
-    uint16_t valid;    // Platz ist frei oder wird benutzt
+    uint8_t session[8];
     uint32_t private_key[8];
 }  __attribute__ ((packed)) Session_t;
-// valid ist 16 Bit groß und steht nicht vorne, um eine
-// Ausrichtung der Werte an 32-bit-Blöcken sicherzustellen
+// Beachte Ausrichtung der Werte an 32-bit-Blöcken: private_key
 
 typedef union {
     uint8_t key_block[40];

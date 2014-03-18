@@ -1,7 +1,8 @@
-#include <string.h>
-
 #include "er-dtls-prf.h"
-#include "aes.h"
+
+#include "cmac.h"
+
+#include <string.h>
 
 /*---------------------------------------------------------------------------*/
 

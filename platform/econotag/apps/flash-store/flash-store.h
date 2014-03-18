@@ -31,9 +31,9 @@
 
 #define SESSION_LIST_LEN      10
 #define RES_SESSION_LIST      18
-#define LEN_SESSION_LIST     600
+#define LEN_SESSION_LIST     640
 
-#define LEN_BLOCK_1          618
+#define LEN_BLOCK_1          658
 
 //------------------------------------
 
