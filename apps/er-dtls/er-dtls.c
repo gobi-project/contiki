@@ -19,6 +19,7 @@
     #define PRINTF(...)
 #endif
 
+#define MAC_LEN 8
 #define EPOCH ((nonce[4] << 8) + nonce[5])
 
 RecordType returnType;
@@ -97,8 +98,8 @@ void dtls_parse_message(DTLSRecord_t *record, uint8_t len, CoapData_t *coapdata)
                 for (i = 0; i < 12; i++) PRINTF(" %02X", nonce[i]);
                 PRINTF("\n");
             #endif
-            aes_crypt(payload, len, key, nonce, 0);
-            aes_crypt(payload, len, key, nonce, 1);
+            ccm_crypt(key, nonce, 12, MAC_LEN, 0, payload, len, NULL, 0);
+            ccm_crypt(key, nonce, 12, MAC_LEN, 1, payload, len, NULL, 0);
             if (memcmp(oldMAC, payload + len, MAC_LEN)) {
                 PRINTF("DTLS-MAC-Fehler. Paket ungültig\n");
                 sendAlert(addr, UIP_UDP_BUF->srcport, fatal, bad_record_mac);
@@ -194,7 +195,7 @@ void dtls_send_message(struct uip_udp_conn *conn, const void *data, uint8_t len)
             for (i = 0; i < 12; i++) PRINTF(" %02X", nonce[i]);
             PRINTF("\n");
         #endif
-        aes_crypt(record->payload + headerAdd, len, key, nonce, 0);
+        ccm_crypt(key, nonce, 12, MAC_LEN, 0, record->payload + headerAdd, len, NULL, 0);
         headerAdd += MAC_LEN;
     }
 

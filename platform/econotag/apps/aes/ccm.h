@@ -5,10 +5,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MAC_LEN 8                 // Länge des Authentication Fields    Element von {4, 6, 8, 10, 12, 14, 16}
-#define LEN_LEN 3                 // Länge des Längenfeldes             Element von {2, 3, 4, 5, 6, 7, 8}
-#define NONCE_LEN (15-LEN_LEN)    // Es ergibt sich die Länge der Nonce
-
 /**
   * \brief  Ent- und Verschlüsselung
   *
@@ -27,6 +23,7 @@
   * \param  mac_only    Falls 1, wird nur die Mac berechnet und an Position
   *                     data + data_len hinterlegt ohne die Daten zu verändern
   */
-void aes_crypt(uint8_t data[], size_t data_len, uint8_t key[16], uint8_t nonce[NONCE_LEN], uint8_t mac_only);
+void ccm_crypt(uint8_t key[16], uint8_t *nonce, size_t nonce_len, size_t mac_len, uint32_t mac_only,
+               uint8_t *data, size_t data_len, uint8_t *adata, size_t adata_len);
 
 #endif /* __CCM_H__ */

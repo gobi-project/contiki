@@ -23,7 +23,7 @@ __attribute__((always_inline)) static void cmac_subkey(uint8_t L[16], uint8_t K)
 
 /* Öffentliche Funktionen -------------------------------------------------- */
 
-void aes_cmac_init(CMAC_CTX *ctx, uint8_t *key, size_t key_length) {
+void cmac_init(CMAC_CTX *ctx, uint8_t *key, size_t key_length) {
     ctx->buf_pos = 0;
     memset(ctx->mac, 0, 16);
 
@@ -38,8 +38,8 @@ void aes_cmac_init(CMAC_CTX *ctx, uint8_t *key, size_t key_length) {
     }
 
     memset(ctx->key, 0, 16);
-    aes_cmac_update(ctx, key, key_length);
-    aes_cmac_finish(ctx, ctx->key, 16);
+    cmac_update(ctx, key, key_length);
+    cmac_finish(ctx, ctx->key, 16);
 
     ctx->buf_pos = 0;
     memset(ctx->mac, 0, 16);
@@ -51,7 +51,7 @@ void aes_cmac_init(CMAC_CTX *ctx, uint8_t *key, size_t key_length) {
     #endif
 }
 
-void aes_cmac_update(CMAC_CTX *ctx, uint8_t *data, size_t data_len) {
+void cmac_update(CMAC_CTX *ctx, uint8_t *data, size_t data_len) {
     uint32_t i = 0;
 
     ASM->CONTROL0bits.CLEAR = 1;
@@ -81,7 +81,7 @@ void aes_cmac_update(CMAC_CTX *ctx, uint8_t *data, size_t data_len) {
     aes_getData(ctx->mac, (uint32_t *) &(ASM->CBC0_RESULT), 16);
 }
 
-void aes_cmac_finish(CMAC_CTX *ctx, uint8_t *mac, size_t mac_len) {
+void cmac_finish(CMAC_CTX *ctx, uint8_t *mac, size_t mac_len) {
     uint32_t i;
 
     ASM->CONTROL0bits.CLEAR = 1;

@@ -43,6 +43,8 @@
     #define PRINTF(...)
 #endif
 
+#define MAC_LEN 8
+
 // Die folgenden 6 Funktionen werden nur einmal aufgerufen und dienen lediglich der Codeübersicht.
 // Das inline-Keyword wird mit den gesetzten Kompiler-Parametern aufgrund der Funktionsgrößen ignoriert, weshalb das Attribut genutzt wird.
 // Bei generateHelloVerifyRequest nimmt die Programmgröße um ca 24 Byte ab während sie bei den anderen gleich bleibt.
@@ -221,8 +223,8 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                     printBytes("Key zum Entschlüsseln von Finished", buf + 12, 16);
                 #endif
                 memcpy(buf + 88, ((uint8_t *) content) + 14, MAC_LEN);
-                aes_crypt((uint8_t *) content, 14, buf + 12, buf + 28, 0);
-                aes_crypt((uint8_t *) content, 14, buf + 12, buf + 28, 1);
+                ccm_crypt(buf + 12, buf + 28, 12, MAC_LEN, 0, (uint8_t *) content, 14, NULL, 0);
+                ccm_crypt(buf + 12, buf + 28, 12, MAC_LEN, 1, (uint8_t *) content, 14, NULL, 0);
                 if (memcmp(buf + 88, ((uint8_t *) content) + 14, MAC_LEN)) {
                     PRINTF("DTLS-MAC-Fehler im Finished. Paket ungültig\n");
                     generateAlert(response, buffer, decrypt_error); // nicht bad_record_mac weil finished betroffen
@@ -275,8 +277,7 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                     printBytes("Nonce zum Verschlüsseln von Finished", buf + 28, 12);
                     printBytes("Key zum Verschlüsseln von Finished", buf + 40, 16);
                 #endif
-                aes_crypt(buffer + 3, 14, buf + 40, buf + 28, 0);
-
+                ccm_crypt(buf + 40, buf + 28, 12, MAC_LEN, 0, buffer + 3, 14, NULL, 0);
                 coap_set_payload(response, buffer, 25);
             } else {
                 PRINTF("Erwartetes ChangeCipherSpec nicht erhalten\n");
@@ -346,10 +347,10 @@ __attribute__((always_inline)) static void generateCookie(uint8_t *dst, DTLSCont
     uint8_t psk[16];
     getPSK(psk);
     CMAC_CTX ctx;
-    aes_cmac_init(&ctx, psk, 16);
-    aes_cmac_update(&ctx, src_addr->u8, 16);
-    aes_cmac_update(&ctx, (uint8_t *) data, *data_len);
-    aes_cmac_finish(&ctx, dst, 8);
+    cmac_init(&ctx, psk, 16);
+    cmac_update(&ctx, src_addr->u8, 16);
+    cmac_update(&ctx, (uint8_t *) data, *data_len);
+    cmac_finish(&ctx, dst, 8);
 }
 
 __attribute__((always_inline)) static AlertDescription checkClientHello(ClientHello_t *clientHello, size_t len) {
@@ -634,21 +635,13 @@ __attribute__((always_inline)) static void generateFinished(uint8_t *buf, uint8_
 
     int i;
     CMAC_CTX ctx;
-    aes_cmac_init(&ctx, buf + 120, 16);
+    cmac_init(&ctx, buf + 120, 16);
 
     for (i = 0; i < stack_size(); i++) {
       stack_read(buf + 136, i, 1);
-      aes_cmac_update(&ctx, buf + 136, 1);
+      cmac_update(&ctx, buf + 136, 1);
     }
-    aes_cmac_finish(&ctx, buf + 103, 16);
-/*
-    stack_read(buf + 136, 0, 16);
-    for (i = 16; i < stack_size(); i+=16) {
-        aes_cmac_update(&ctx, buf + 136, 16);
-        stack_read(buf + 136, i, 16);
-    }
-    aes_cmac_update(&ctx, buf + 136, stack_size() + 16 - i);
-*/
+    cmac_finish(&ctx, buf + 103, 16);
 
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -665,10 +658,10 @@ __attribute__((always_inline)) static void generateFinished(uint8_t *buf, uint8_
 
     for (i = 0; i < stack_size(); i++) {
       stack_read(buf + 136, i, 1);
-      aes_cmac_update(&ctx, buf + 136, 1);
+      cmac_update(&ctx, buf + 136, 1);
     }
-    aes_cmac_update(&ctx, client_finished, 14);
-    aes_cmac_finish(&ctx, buf + 103, 16);
+    cmac_update(&ctx, client_finished, 14);
+    cmac_finish(&ctx, buf + 103, 16);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     // | C-F |#|#|#|#|Nonce|     Master-Secret     |#|#|#|#| C-MAC |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|

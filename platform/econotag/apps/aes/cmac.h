@@ -21,14 +21,14 @@ typedef struct {
   *         http://tools.ietf.org/html/rfc4615
   *
   *         Befor calculating a cmac its important to reserve memory for
-  *         CMAC_CTX and call this function die initialize the context
+  *         CMAC_CTX and call this function to initialize the context
   *         and include the key.
   *
   * \param  ctx        Pointer to CMAC_CTX needed for calculation
   * \param  key        Pointer to the key
   * \param  key_len    Length of the key
   */
-void aes_cmac_init(CMAC_CTX *ctx, uint8_t *key, size_t key_length);
+void cmac_init(CMAC_CTX *ctx, uint8_t *key, size_t key_length);
 
 /**
   * \brief  CMAC initialisation
@@ -45,7 +45,7 @@ void aes_cmac_init(CMAC_CTX *ctx, uint8_t *key, size_t key_length);
   * \param  data       Pointer to the data
   * \param  data_len   Length of the data
   */
-void aes_cmac_update(CMAC_CTX *ctx, uint8_t *data, size_t data_len);
+void cmac_update(CMAC_CTX *ctx, uint8_t *data, size_t data_len);
 
 /**
   * \brief  CMAC initialisation
@@ -62,6 +62,6 @@ void aes_cmac_update(CMAC_CTX *ctx, uint8_t *data, size_t data_len);
   * \param  data       Pointer to the memory for cmac
   * \param  data_len   Length of the needed mac
   */
-void aes_cmac_finish(CMAC_CTX *ctx, uint8_t *mac, size_t mac_len);
+void cmac_finish(CMAC_CTX *ctx, uint8_t *mac, size_t mac_len);
 
 #endif /* __CMAC_H__ */
