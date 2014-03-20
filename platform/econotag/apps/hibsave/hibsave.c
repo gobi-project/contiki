@@ -7,14 +7,10 @@
 /* nvm interface */
 #define NVM_INTERFACE gNvmInternalInterface_c
 
-/* nvm-write */
-#define WRITE_NBYTES 256
-#define WRITE_ADDR 0x07c68 //0x1D000 //
-
 #if DEBUG
     #define PRINTF(...) printf(__VA_ARGS__)
 #else
-    #define PRINTF(...) printf(__VA_ARGS__)
+    #define PRINTF(...)
 #endif
 
 typedef struct __attribute__((packed))
@@ -25,7 +21,6 @@ typedef struct __attribute__((packed))
 } hibdata;
 
 //0x00407c68      0x400
-static uint32_t		__persistent__							g_SAVEDUMP[WRITE_NBYTES];
 static hibdata		__attribute__ ((section ("HIBDATA")))	g_HIBDATA = {0};
 static uint8_t		g_SAVEPTR = 0;
 static nvmType_t	g_VNMTYPE = 0;
@@ -42,30 +37,6 @@ void hibs_init()
 	// Read: flash -> ram
 	err = nvm_read(NVM_INTERFACE, g_VNMTYPE, (uint8_t*)g_HIBDATA.RAMADDRESS, g_HIBDATA.FLASHADDRESS, g_HIBDATA.LENGTH);
 	PRINTF("nvm_read returned: 0x%02x\r\n", err);
-
-	g_SAVEDUMP[1]++;	
-	
-	printf("%d\n", g_SAVEDUMP[1]);
-}
-
-uint32_t hibs_save(void* memory, uint8_t size)
-{
-	uint8_t ptr = 0;
-	uint32_t dest = g_SAVEPTR;
-	while(size--)
-	{
-		g_SAVEDUMP[g_SAVEPTR++] = ((uint32_t*)memory)[ptr++];
-	}
-	return dest;
-}
-
-void hibs_load(void* memory, uint8_t size, uint32_t dest)
-{
-	uint8_t ptr = 0;
-	while(size--)
-	{
-		((uint32_t*)memory)[ptr++] = g_SAVEDUMP[dest++];
-	}
 }
 
 void hibs_finit()
@@ -84,7 +55,7 @@ void hibs_finit()
 			PRINTF("nvm_erase returned: 0x%02x\r\n", err);
 
 			// Write: ram -> flash, write complete blocks
-			err = nvm_write(NVM_INTERFACE, g_VNMTYPE, (uint8_t*)(g_HIBDATA.RAMADDRESS & 0xFFFFF000), (g_HIBDATA.FLASHADDRESS & 0xFFFFF000), (g_HIBDATA.LENGTH & 0xFFFFF000) + 0x1000);
+			err = nvm_write(NVM_INTERFACE, g_VNMTYPE, (uint8_t*)(g_HIBDATA.RAMADDRESS & 0xFFFFF000), (g_HIBDATA.FLASHADDRESS & 0xFFFFF000), g_HIBDATA.LENGTH + (g_HIBDATA.RAMADDRESS & 0x000000FFF));
 			PRINTF("nvm_write returned: 0x%02x\r\n", err);
 		}
 	}

@@ -25,10 +25,6 @@
 
 void 		hibs_init();
 
-uint32_t 	hibs_save(void* memory, uint8_t size);
-
-void 		hibs_load(void* memory, uint8_t size, uint32_t dest);
-
 void 		hibs_finit();
 
 #endif /* __HIBSAVE_H__ */
