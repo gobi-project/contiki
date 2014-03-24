@@ -142,6 +142,9 @@ coap_receive(void)
                (message, response, transaction->packet + COAP_MAX_HEADER_SIZE,
                 block_size, &new_offset)) {
 
+              /* update transaction mid. important if separate accept was used and original transaction is used to resume */
+              transaction->mid = response->mid;
+
               if(erbium_status_code == NO_ERROR) {
 
                 //TODO coap_handle_blockwise(request, response, start_offset, end_offset);

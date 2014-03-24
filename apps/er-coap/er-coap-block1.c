@@ -89,6 +89,7 @@ int coap_block1_handler(void* request, void* response, uint8_t *target, size_t *
 
     coap_set_header_block1(response, packet->block1_num, packet->block1_more, packet->block1_size);
     if (packet->block1_more) {
+      coap_set_status_code(response, CONTINUE_2_31);
       return 1;
     }
   }
