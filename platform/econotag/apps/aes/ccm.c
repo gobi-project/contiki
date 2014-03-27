@@ -85,6 +85,32 @@ ccm_crypt(uint8_t key[16], uint8_t *nonce, size_t nonce_len, size_t mac_len, uin
   aes_setData(&(ASM->DATA0), abs_0, 16);
   aes_round();
 
+  /* use additional data for mac calculation */
+  if(adata != NULL && adata_len > 0) {
+    uint8_t lenblock[16];
+    if(adata_len < 65280) {  /* < (2^16 - 2^8) */
+      lenblock[0] = (adata_len >> 8) & 0xFF;
+      lenblock[1] = (adata_len >> 0) & 0xFF;
+      i = 14;
+    } else { /* >= (2^16 - 2^8) */
+      lenblock[0] = 0xFF;
+      lenblock[1] = 0xFE;
+      lenblock[2] = (adata_len >> 24) & 0xFF;
+      lenblock[3] = (adata_len >> 16) & 0xFF;
+      lenblock[4] = (adata_len >> 8) & 0xFF;
+      lenblock[5] = (adata_len >> 0) & 0xFF;
+      i = 10;
+    }
+    memcpy(lenblock + 16 - i, adata, i);
+    aes_setData(&(ASM->DATA0), lenblock, 16 - i + min(i, adata_len));
+    aes_round();
+
+    for(; i < adata_len; i += 16) {
+      aes_setData(&(ASM->DATA0), adata + i, min(16, adata_len - i));
+      aes_round();
+    }
+  }
+
   /* initalize counter. nonce is already included */
   abs_0[0] = 14 - nonce_len;
 
