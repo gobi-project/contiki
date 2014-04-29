@@ -41,7 +41,7 @@ PROJECT_OBJECTFILES += ${addprefix $(OBJECTDIR)/,$(CONTIKI_TARGET_MAIN:.c=.o)}
 
 TEXT_BASE = 0x00400000
 export TEXT_BASE
-LINKERSCRIPT = $(OBJECTDIR)/mc1322x.lds
+LINKERSCRIPT = $(OBJECTDIR)/mc1322x.hibsave.lds
 
 STARTUP=$(OBJECTDIR)/start.o
 
@@ -121,7 +121,7 @@ CUSTOM_RULE_C_TO_CO=yes
 %.$(TARGET): %_$(TARGET).bin
 	@
 
-%.elf: $(OBJECTDIR)/board.h  %.co $(PROJECT_OBJECTFILES) contiki-$(TARGET).a $(STARTUP) $(OBJECTDIR)/mc1322x.lds
+%.elf: $(OBJECTDIR)/board.h  %.co $(PROJECT_OBJECTFILES) contiki-$(TARGET).a $(STARTUP) $(OBJECTDIR)/mc1322x.hibsave.lds
 	$(TRACE_CC)
 	$(Q)$(CC) $(LDFLAGS) $(CFLAGS) -nostartfiles -o $@ $(filter-out %.a %.lds,$^) $(filter %.a,$^) $(filter %.a,$^)
 
