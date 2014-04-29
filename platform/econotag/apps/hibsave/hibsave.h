@@ -11,7 +11,9 @@
 #include <stdint.h>
 #include "memb.h"
 
-#define 	__persistent__ __attribute__ ((section ("SAVEDATA")))
+#define 	__persistent__ __attribute__ ((section (".save"))) __attribute__ ((nocommon))
+#define 	__const__ 	   __attribute__ ((section (".const"))) __attribute__ ((nocommon))
+#define 	__flash__ 	   __attribute__ ((section (".flash"))) __attribute__ ((nocommon))
 
 #ifdef MEMB
 #undef MEMB
