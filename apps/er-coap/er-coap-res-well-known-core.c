@@ -39,8 +39,17 @@
 #include <string.h>
 #include "er-coap-engine.h"
 
-#define DEBUG   DEBUG_NONE
-#include "net/uip-debug.h"
+#define DEBUG 0
+#if DEBUG
+#include <stdio.h>
+#define PRINTF(...) printf(__VA_ARGS__)
+#define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
+#define PRINTLLADDR(lladdr) PRINTF("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
+#else
+#define PRINTF(...)
+#define PRINT6ADDR(addr)
+#define PRINTLLADDR(addr)
+#endif
 
 #define ADD_CHAR_IF_POSSIBLE(char) \
   if(strpos >= *offset && bufpos < preferred_size) { \
@@ -55,8 +64,8 @@
                        preferred_size - bufpos + 1, \
                        "%s", \
                        string \
-                       + (*offset - (int32_t) strpos > 0 ? \
-                          *offset - (int32_t) strpos : 0)); \
+                       + (*offset - (int32_t)strpos > 0 ? \
+                          *offset - (int32_t)strpos : 0)); \
     if(bufpos op preferred_size) { \
       PRINTF("res: BREAK at %s (%p)\n", string, resource); \
       break; \
@@ -68,8 +77,8 @@
 /*- Resource Handlers -------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 void
-well_known_core_get_handler(void *request, void *response, uint8_t * buffer,
-                            uint16_t preferred_size, int32_t * offset)
+well_known_core_get_handler(void *request, void *response, uint8_t *buffer,
+                            uint16_t preferred_size, int32_t *offset)
 {
   size_t strpos = 0;            /* position in overall string (which is larger than the buffer) */
   size_t bufpos = 0;            /* position within buffer (bytes written) */
@@ -104,22 +113,24 @@ well_known_core_get_handler(void *request, void *response, uint8_t * buffer,
   }
 #endif
 
-  for(resource = (resource_t *) list_head(rest_get_resources()); resource;
+  for(resource = (resource_t *)list_head(rest_get_resources()); resource;
       resource = resource->next) {
 #if COAP_LINK_FORMAT_FILTERING
     /* Filtering */
     if(len) {
       if(strcmp(filter, "href") == 0) {
         attrib = strstr(resource->url, value);
-        if(attrib == NULL || (value[-1] == '/' && attrib != resource->url))
+        if(attrib == NULL || (value[-1] == '/' && attrib != resource->url)) {
           continue;
+        }
         end = attrib + strlen(attrib);
       } else {
         attrib = strstr(resource->attributes, filter);
         if(attrib == NULL
            || (attrib[strlen(filter)] != '='
-               && attrib[strlen(filter)] != '"'))
+               && attrib[strlen(filter)] != '"')) {
           continue;
+        }
         attrib += strlen(filter) + 2;
         end = strchr(attrib, '"');
       }
@@ -141,8 +152,9 @@ well_known_core_get_handler(void *request, void *response, uint8_t * buffer,
       }
       PRINTF("Filter: res has prefix %s\n", found);
       if(lastchar != '*'
-         && (found[len] != '"' && found[len] != ' ' && found[len] != '\0'))
+         && (found[len] != '"' && found[len] != ' ' && found[len] != '\0')) {
         continue;
+      }
       PRINTF("Filter: res has match\n");
     }
 #endif

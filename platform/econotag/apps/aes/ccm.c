@@ -138,7 +138,7 @@ ccm_crypt(uint8_t key[16], uint8_t *nonce, size_t nonce_len, size_t mac_len, uin
   }
 
   /* read cbc result */
-  aes_getData(&data[data_len], &(ASM->CBC0_RESULT), 8);
+  aes_getData(&data[data_len], &(ASM->CBC0_RESULT), mac_len);
 
   /* generate a_0 generieren, encrypt to s_0 and x-or with cbc result */
   for(i = 15; i > nonce_len; i--) {

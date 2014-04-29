@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2013, Institute for Pervasive Computing, ETH Zurich
+ * Copyright (c) 2010, Mariano Alvira <mar@devl.org> and other contributors
+ * to the MC1322x project (http://mc1322x.devl.org) and Contiki.
+ *
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +28,67 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * This file is part of the Contiki operating system.
+ * This file is part of the Contiki OS.
+ *
+ * $Id: button-sensor.c,v 1.1 2010/06/09 14:46:30 maralvira Exp $
  */
 
-/**
- * \file
- *      Erbium (Er) CoAP client example
- * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
- */
+#include "lib/sensors.h"
+#include "dev/button-sensor.h"
 
-#ifndef __ER_PLUGTEST_H__
-#define __ER_PLUGTEST_H__
+#include "mc1322x.h"
 
-#if !defined(CONTIKI_TARGET_NATIVE)
-#warning "Should only be compiled for native!"
-#endif
+#include <signal.h>
 
-#define DEBUG 0
-#if DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
-#define PRINTLLADDR(lladdr) PRINTF("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
-#else
-#define PRINTF(...)
-#define PRINT6ADDR(addr)
-#define PRINTLLADDR(addr)
-#endif
+const struct sensors_sensor button_sensor2;
 
-/* double expansion */
-#define TO_STRING2(x)  # x
-#define TO_STRING(x)  TO_STRING2(x)
+static struct timer debouncetimer;
+static int status(int type);
 
-#define MAX_PLUGFEST_PAYLOAD 64 + 1       /* +1 for the terminating zero, which is not transmitted */
-#define MAX_PLUGFEST_BODY    2048
-#define CHUNKS_TOTAL         2012
+void kbi5_isr(void) {
+	if(timer_expired(&debouncetimer)) {
+		timer_set(&debouncetimer, CLOCK_SECOND / 4);
+		sensors_changed(&button_sensor2);
+	}
+	clear_kbi_evnt(5);
+}
 
-#endif /* __ER_PLUGTEST_H__ */
+static int
+value(int type)
+{
+	return GPIO->DATA.GPIO_27 || !timer_expired(&debouncetimer);
+}
+
+static int
+configure(int type, int c)
+{
+	switch (type) {
+	case SENSORS_HW_INIT:
+		if (c) {
+			disable_irq_kbi(5);
+		} else {
+			if(!status(SENSORS_ACTIVE)) {
+				timer_set(&debouncetimer, 0);
+				enable_irq_kbi(5);
+				kbi_edge(5);
+				enable_ext_wu(5);
+			}
+		}
+		return 1;
+	}
+	return 0;
+}
+
+static int
+status(int type)
+{
+	switch (type) {
+	case SENSORS_ACTIVE:
+	case SENSORS_READY:
+		return bit_is_set(*CRM_WU_CNTL, 21); /* check if kbi5 irq is enabled */
+	}
+	return 0;
+}
+
+SENSORS_SENSOR(button_sensor2, BUTTON_SENSOR,
+	       value, configure, status);

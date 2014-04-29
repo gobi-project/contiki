@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Institute for Pervasive Computing, ETH Zurich
+ * Copyright (c) 2014, Lars Schmertmann <SmallLars@t-online.de>.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@
  * \file
  *      CoAP module for block 1 handling
  * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
+ *      Lars Schmertmann <SmallLars@t-online.de>
  */
 
 #ifndef COAP_BLOCK1_H_
@@ -42,6 +42,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-int coap_block1_handler(void* request, void* response, uint8_t *target, size_t *len, size_t max_len);
+int coap_block1_handler(void *request, void *response, uint8_t *target, size_t *len, size_t max_len);
 
 #endif /* COAP_BLOCK1_H_ */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Institute for Pervasive Computing, ETH Zurich
+ * Copyright (c) 2014, Lars Schmertmann <SmallLars@t-online.de>.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@
  * \file
  *      CoAP module for block 1 handling
  * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
+ *      Lars Schmertmann <SmallLars@t-online.de>
  */
 
 #include <stdio.h>
@@ -46,7 +46,7 @@
 #if DEBUG
 #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
-#define PRINTLLADDR(lladdr) PRINTF("[%02x:%02x:%02x:%02x:%02x:%02x]",(lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3],(lladdr)->addr[4], (lladdr)->addr[5])
+#define PRINTLLADDR(lladdr) PRINTF("[%02x:%02x:%02x:%02x:%02x:%02x]", (lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3], (lladdr)->addr[4], (lladdr)->addr[5])
 #else
 #define PRINTF(...)
 #define PRINT6ADDR(addr)
@@ -54,41 +54,62 @@
 #endif
 
 /*----------------------------------------------------------------------------*/
-int coap_block1_handler(void* request, void* response, uint8_t *target, size_t *len, size_t max_len)
+
+/**
+ * \brief Block 1 support within a coap-ressource
+ *
+ *        This function will help you to use block 1. If target is null
+ *        error handling and response configuration is active. On return
+ *        value 0, the last block was recived, while on return value 1
+ *        more blocks will follow. With target, len and maxlen this
+ *        function will assemble the blocks.
+ *
+ *        You can find an example in:
+ *        examples/er-rest-example/resources/res-b1-sep-b2.c
+ *
+ * \param request   Request pointer from the handler
+ * \param response  Response pointer from the handler
+ * \param target    Pointer to the buffer where the request payload can be assembled
+ * \param len       Pointer to the variable, where the function stores the actual length
+ * \param max_len   Length of the "target"-Buffer
+ *
+ * \return 0 if initialisation was successful
+ *         -1 if initialisation failed
+ */
+int
+coap_block1_handler(void *request, void *response, uint8_t *target, size_t *len, size_t max_len)
 {
   const uint8_t *payload = 0;
   int pay_len = REST.get_request_payload(request, &payload);
 
-  if (!pay_len || !payload) {
+  if(!pay_len || !payload) {
     erbium_status_code = REST.status.BAD_REQUEST;
     coap_error_message = "NoPayload";
     return -1;
   }
 
-  coap_packet_t *packet = (coap_packet_t *) request;
+  coap_packet_t *packet = (coap_packet_t *)request;
 
-  if (packet->block1_offset + pay_len > max_len) {
+  if(packet->block1_offset + pay_len > max_len) {
     erbium_status_code = REST.status.REQUEST_ENTITY_TOO_LARGE;
     coap_error_message = "Message to big";
     return -1;
   }
 
-  //TODO prüfen ob das Offset zu den bisher erhaltenen Daten passt
-
-  if (target && len) {
+  if(target && len) {
     memcpy(target + packet->block1_offset, payload, pay_len);
     *len = packet->block1_offset + pay_len;
   }
 
-  if (IS_OPTION(packet, COAP_OPTION_BLOCK1)) {
+  if(IS_OPTION(packet, COAP_OPTION_BLOCK1)) {
     PRINTF("Blockwise: block 1 request: Num: %u, More: %u, Size: %u, Offset: %u\n",
-      packet->block1_num,
-      packet->block1_more,
-      packet->block1_size,
-      packet->block1_offset);
+           packet->block1_num,
+           packet->block1_more,
+           packet->block1_size,
+           packet->block1_offset);
 
     coap_set_header_block1(response, packet->block1_num, packet->block1_more, packet->block1_size);
-    if (packet->block1_more) {
+    if(packet->block1_more) {
       coap_set_status_code(response, CONTINUE_2_31);
       return 1;
     }
