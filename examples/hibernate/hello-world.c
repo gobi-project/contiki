@@ -52,9 +52,10 @@ static struct etimer et_hello;
 
 static uint8_t __persistent__ counter = 0;
 
-uint8_t __const__ g_const_str[] = "text...";//{'t','e','x','t','.','.','.'};
-
 uint8_t __flash__ g_flash_str[] = "text im flash";
+
+CONST_ARRAY(uint8_t, g_const_str, "text...");
+CONST(uint32_t, g_const_int, 0xABCDEFFF);
 
 #include <stdio.h> /* For printf() */
 /*---------------------------------------------------------------------------*/
@@ -74,9 +75,12 @@ PROCESS_THREAD(hello_world_process, ev, data)
   counter++;
   
   printf("%d\n",counter);
-  //printf("%s\n",g_name);
   
- // hibs_finit();
+  uint8_t buffer[16];
+  GET(g_const_str, buffer);
+  printf("%s\n",buffer);
+  
+  hibs_finit();
   
   
   counter = 0;
