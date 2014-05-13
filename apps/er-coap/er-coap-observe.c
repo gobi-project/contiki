@@ -242,6 +242,18 @@ coap_observe_handler(resource_t *resource, void *request, void *response)
                            coap_req->token, coap_req->token_len,
                            resource->url)) {
         coap_set_header_observe(coap_res, 0);
+        /*
+         * Following payload is for demonstration purposes only.
+         * A subscription should return the same representation as a normal GET.
+         * Uncomment if you want an information about the avaiable observers.
+         */
+        /*
+         * coap_set_payload(coap_res,
+         *                  content,
+         *                  snprintf(content, sizeof(content), "Added %u/%u",
+         *                           list_length(observers_list),
+         *                           COAP_MAX_OBSERVERS));
+         */
       } else {
         coap_res->code = SERVICE_UNAVAILABLE_5_03;
         coap_set_payload(coap_res, "TooManyObservers", 16);

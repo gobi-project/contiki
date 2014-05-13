@@ -19,7 +19,7 @@
 #include "flash-store.h"
 #include "storage.h"
 
-#define DEBUG 1
+#define DEBUG 0
 #define DEBUG_COOKIE 0
 #define DEBUG_ECC 0
 #define DEBUG_PRF 0
@@ -499,7 +499,7 @@ __attribute__((always_inline)) static void generateServerHello(uint32_t *buf) {
         printf("ECC - START\n");
         uint32_t time = *MACA_CLK;
     #endif
-    ecc_ec_mult(buf + 16, buf + 24, buf + 32, buf, buf + 8);
+    ecc_ec_mult(buf, buf + 8, buf + 16, buf + 24, buf + 32);
     uint32_t i;
     uint8_t *buf08 = (uint8_t *) buf;
     for (i = 0; i < 16; i++) {
@@ -547,7 +547,7 @@ __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_
       buf[ 96 + i] = ((uint8_t *) cke->public_key.x)[31 - i];
       buf[128 + i] = ((uint8_t *) cke->public_key.y)[31 - i];
     }
-    ecc_ec_mult((uint32_t *) (buf + 96), (uint32_t *) (buf + 128), (uint32_t *) (buf + 160), (uint32_t *) (buf + 20), (uint32_t *) (buf + 52));
+    ecc_ec_mult((uint32_t *) (buf + 20), (uint32_t *) (buf + 52), (uint32_t *) (buf + 96), (uint32_t *) (buf + 128), (uint32_t *) (buf + 160));
     for (i = 0; i < 16; i++) {
         buf[20 + i] ^= buf[51 - i];
         buf[51 - i] ^= buf[20 + i];
