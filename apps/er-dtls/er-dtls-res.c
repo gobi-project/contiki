@@ -56,9 +56,6 @@ __attribute__((always_inline)) static void generateServerHello(uint32_t *buf);
 __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_t *cke, uint8_t *buf);
 __attribute__((always_inline)) static void generateFinished(uint8_t *buf, uint8_t *client_finished);
 
-void sendServerHello(void *data, void* resp);
-__attribute__((always_inline)) static int readServerHello(void *target, uint8_t offset, uint8_t size);
-
 static uip_ipaddr_t src_addr[1];
 static coap_separate_t request_metadata[1];
 
@@ -89,6 +86,27 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
         resource_busy = 1;
         busy_since = clock_seconds();
         uip_ipaddr_copy(src_addr, &UIP_IP_BUF->srcipaddr);
+    }
+
+    if (*offset > 0) { // request for more blocks
+        uint32_t length = stack_size() - created_offset;
+        if (*offset >= length) {
+            coap_set_status_code(response, BAD_OPTION_4_02);
+            coap_set_payload(response, "BlockOutOfScope", 15);
+            return;
+        }
+
+        uint32_t readsize = (length - *offset);
+        if (preferred_size < readsize) readsize = preferred_size;
+
+        stack_read(buffer, created_offset + *offset, readsize);
+        coap_set_payload(response, buffer, readsize);
+
+        *offset += readsize;
+        if (*offset >= length) {
+            *offset = -1;
+        }
+        return;
     }
 
     if (coap_block1_handler(request, response, big_msg, &big_msg_len, 128)) {
@@ -163,7 +181,18 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                 // ServerHello wird immer gleich generiert da Server nur
                 // genau ein Ciphersuit mit einer Konfiguration beherrscht.
                 generateServerHello(buf32); // Das dauert nun
-                sendServerHello(NULL, request);
+
+                /* Send first block */
+                coap_transaction_t *transaction = NULL;
+                if ((transaction = coap_new_transaction(request_metadata->mid, &request_metadata->addr, request_metadata->port))) {
+                    coap_separate_resume(response, request_metadata, CONTENT_2_05);
+                    stack_read(buffer, created_offset, request_metadata->block2_size);
+                    coap_set_payload(response, buffer, request_metadata->block2_size);
+                    coap_set_header_block2(response, 0, 1, request_metadata->block2_size);
+                    /* Warning: No check for serialization error. */
+                    transaction->packet_len = coap_serialize_message(response, transaction->packet);
+                    coap_send_transaction(transaction);
+                }
             }
         } else {
             PRINTF("POST-Anfrage auf %.*s erhalten\n", uri_len, uri_path);
@@ -296,7 +325,6 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
 
 /*---------------------------------------------------------------------------*/
 
-//RESOURCE(dtls, METHOD_POST | HAS_SUB_RESOURCES, "dtls", "rt=\"dtls.handshake\";if=\"core.lb\";ct=42");
 PARENT_RESOURCE(res_dtls, "rt=\"dtls.handshake\";if=\"core.lb\";ct=42", NULL, dtls_handler, NULL, NULL);
 
 /*---------------------------------------------------------------------------*/
@@ -674,42 +702,4 @@ __attribute__((always_inline)) static void generateFinished(uint8_t *buf, uint8_
     #if DEBUG_PRF
         printBytes("Server Finished", buf + 12, 12);
     #endif
-}
-
-void sendServerHello(void *data, void* resp) {
-    if (request_metadata->block2_size == 0 || request_metadata->block2_size > 32) {
-        request_metadata->block2_size = 32;
-    }
-
-    PRINTF("Block %u wird gesendet.\n", request_metadata->block2_num);
-
-    uint8_t buffer[request_metadata->block2_size];
-    int8_t read = readServerHello(buffer, request_metadata->block2_num * request_metadata->block2_size, request_metadata->block2_size);
-
-    coap_transaction_t *transaction = NULL;
-    if ( (transaction = coap_new_transaction(request_metadata->mid, &request_metadata->addr, request_metadata->port)) ) {
-        coap_packet_t response[1];
-        coap_separate_resume(response, request_metadata, CREATED_2_01);
-        coap_set_header_content_format(response, APPLICATION_OCTET_STREAM);
-        coap_set_payload(response, buffer, read == 0 ? request_metadata->block2_size : read);
-        coap_set_header_block2(response, request_metadata->block2_num, read == 0 ? 1 : 0, request_metadata->block2_size);
-        // TODO Warning: No check for serialization error.
-        transaction->packet_len = coap_serialize_message(response, transaction->packet);
-        transaction->callback = (read == 0 ? &sendServerHello : NULL);
-        coap_send_transaction(transaction);
-        request_metadata->block2_num++;
-    }
-}
-
-__attribute__((always_inline)) static int readServerHello(void *target, uint8_t offset, uint8_t size) {
-    uint8_t length = stack_size() - created_offset;
-
-    if (offset >= length) return -1;
-
-    uint8_t readsize = (length - offset);
-    if (size < readsize) readsize = size;
-
-    stack_read(target, created_offset + offset, readsize);
-
-    return (offset + readsize) >= length ? readsize : 0;
 }
