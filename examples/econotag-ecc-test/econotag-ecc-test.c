@@ -1652,7 +1652,7 @@ uint32_t ecc_data[][7][8] = { {
                                 { 0x0fecd72e, 0x3c3335f7, 0xeb5d72f7, 0xa8ebea41, 0xbb3829b5, 0xe2c9f088, 0x5e37b940, 0x48162648 },
                                 { 0xf1c5cca2, 0xfefc97be, 0x37496eba, 0xe4c9c004, 0x8f896225, 0x02cd923f, 0xb68be2a3, 0xfa4f4b65 },
                                 { 0x314331d8, 0x70a8d9d0, 0x0c922187, 0x951be164, 0xd716d74d, 0xc1cb6b67, 0x647c2a9f, 0x1594601a }
-                              }, {
+                              /*}, { Not enough memory for more test values
                                 { 0x94203d96, 0xf446beab, 0x0f8b20bc, 0x389c59ef, 0x242d503a, 0x1baf43c8, 0x3600cf74, 0x1de5e5ef },
                                 { 0x97a63b7c, 0x3477df53, 0x98cd129d, 0x386c7fd6, 0x820b196e, 0x4eb81e8b, 0x205bd83c, 0xc0286a83 },
                                 { 0xe89c538c, 0xaf6aae3c, 0x8104897d, 0x65453323, 0xef8fc678, 0x80e12904, 0x66939201, 0x5e9ba64f },
@@ -1820,7 +1820,7 @@ uint32_t ecc_data[][7][8] = { {
                                 { 0x2d678829, 0x33c9861d, 0xe7419c54, 0x963b2e25, 0x0919ffb8, 0x2e7418c6, 0x00f595dc, 0x1b2734b3 },
                                 { 0xfa8c3a83, 0xa182c951, 0x203a4716, 0x10994d1a, 0x97234f60, 0x779a3fc0, 0xa2f72c49, 0x4811ae01 },
                                 { 0x926de2e3, 0xc9d02e7d, 0xe745b89b, 0x7210a4fa, 0x58228e67, 0x974bb00b, 0x8df1b6a6, 0x474d3460 }
-                              /*}, { Not enough memory for more test values
+                              }, {
                                 { 0x8d63e29b, 0x37da4019, 0xadbce1ae, 0x8f13b4a0, 0x6485458e, 0x005d7952, 0x11129a0a, 0xa5b7661e },
                                 { 0x297c58be, 0x3d5b7465, 0x33012b97, 0x61e9f795, 0xabd3a260, 0xa7df3f4a, 0x9907dbd1, 0xfe9d06c7 },
                                 { 0x4bfe1dfa, 0x7f7c44d6, 0xbdb02117, 0x584c21f0, 0x0a3e923a, 0x0a3faf1a, 0xf3e5a5bf, 0xdda49418 },
@@ -2132,7 +2132,11 @@ test_ecc()
   uint32_t base_y[8] = { 0x37bf51f5, 0xcbb64068, 0x6b315ece, 0x2bce3357, 0x7c0f9e16, 0x8ee7eb4a, 0xfe1a7f9b, 0x4fe342e2 };
   uint32_t test_x[8];
   uint32_t test_y[8];
+<<<<<<< HEAD
   for(i = 0; i < 221; i++) {
+=======
+  for(i = 0; i < 200; i++) {
+>>>>>>> econotag-ecc
     uint32_t time;
     uint32_t checkvar;
 

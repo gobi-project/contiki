@@ -16,7 +16,8 @@
 #include "ccm.h"
 #include "cmac.h"
 #include "ecc.h"
-#include "flash-store.h"
+#include "flash.h"
+#include "../../tools/blaster/blaster.h"
 #include "storage.h"
 
 #define DEBUG 0
@@ -89,7 +90,7 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
     }
 
     if (*offset > 0) { // request for more blocks
-        uint32_t length = stack_size() - created_offset;
+        uint32_t length = flash_stack_size() - created_offset;
         if (*offset >= length) {
             coap_set_status_code(response, BAD_OPTION_4_02);
             coap_set_payload(response, "BlockOutOfScope", 15);
@@ -99,7 +100,7 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
         uint32_t readsize = (length - *offset);
         if (preferred_size < readsize) readsize = preferred_size;
 
-        stack_read(buffer, created_offset + *offset, readsize);
+        flash_stack_read(buffer, created_offset + *offset, readsize);
         coap_set_payload(response, buffer, readsize);
 
         *offset += readsize;
@@ -142,8 +143,8 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                 // Abspeichern für Finished-Hash. Kritisch, da Cookie noch nicht geprüft.
                 // Derzeit nicht anders möglich, da generateCookie den alten Cookie entfernt,
                 // dieser aber zur Berechnung des Finished-Hash benötigt wird.
-                stack_init();
-                stack_push(big_msg, big_msg_len);
+                flash_stack_init();
+                flash_stack_push(big_msg, big_msg_len);
                 client_random_offset = (uint32_t) &clienthello->random - (uint32_t) big_msg;
 
                 // Übertragenen Cookie in Buffer sichern zum späteren Vergleich
@@ -186,7 +187,7 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                 coap_transaction_t *transaction = NULL;
                 if ((transaction = coap_new_transaction(request_metadata->mid, &request_metadata->addr, request_metadata->port))) {
                     coap_separate_resume(response, request_metadata, CONTENT_2_05);
-                    stack_read(buffer, created_offset, request_metadata->block2_size);
+                    flash_stack_read(buffer, created_offset, request_metadata->block2_size);
                     coap_set_payload(response, buffer, request_metadata->block2_size);
                     coap_set_header_block2(response, 0, 1, request_metadata->block2_size);
                     /* Warning: No check for serialization error. */
@@ -212,7 +213,7 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
             coap_separate_accept(request, request_metadata); // ACK + Anfrageinformationen zwischenspeichern
 
             uint32_t key_exchange_length = sizeof(DTLSContent_t) + content->len + sizeof(KeyExchange_t);
-            stack_push(big_msg, key_exchange_length);
+            flash_stack_push(big_msg, key_exchange_length);
 
             // ClientKeyExchange wird ausgewertet und ein KeyBlock berechnet
             processClientKeyExchange((KeyExchange_t *) (content->payload + content->len), buf);
@@ -239,11 +240,11 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                 getSessionData(buf + 32, src_addr, session_epoch);
                 buf[33]++;
                 if (buf[33] == 0) buf[32]++;
-                fpoint_t key_block;
+                flash_addr_t key_block;
                 key_block = getKeyBlock(src_addr, (buf[32] << 8) + buf[33], 0);
-                nvm_getVar(buf + 28, key_block + KEY_BLOCK_CLIENT_IV, 4);
+                flash_getVar(buf + 28, key_block + KEY_BLOCK_CLIENT_IV, 4);
                 memset(buf + 34, 0, 6);
-                nvm_getVar(buf + 12, key_block + KEY_BLOCK_CLIENT_KEY, 16);
+                flash_getVar(buf + 12, key_block + KEY_BLOCK_CLIENT_KEY, 16);
                 //  0                   1                   2                   3                   4                   5
                 //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
                 // |#|#|#|  Key  |Nonce|     Master-Secret     |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
@@ -300,8 +301,8 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                 c->payload[0] = 20;
                 memcpy(c->payload + 1, buf + 12, 12);
 
-                nvm_getVar(buf + 28, key_block + KEY_BLOCK_SERVER_IV, 4);
-                nvm_getVar(buf + 40, key_block + KEY_BLOCK_SERVER_KEY, 16);
+                flash_getVar(buf + 28, key_block + KEY_BLOCK_SERVER_IV, 4);
+                flash_getVar(buf + 40, key_block + KEY_BLOCK_SERVER_KEY, 16);
                 #if DEBUG_FIN
                     printBytes("Nonce zum Verschlüsseln von Finished", buf + 28, 12);
                     printBytes("Key zum Verschlüsseln von Finished", buf + 40, 16);
@@ -461,7 +462,7 @@ __attribute__((always_inline)) static void generateServerHello(uint32_t *buf) {
 
     if (createSession(buf, src_addr) == -1) return;
 
-    created_offset = stack_size();
+    created_offset = flash_stack_size();
 
     DTLSContent_t *content = (DTLSContent_t *) buf;
 
@@ -489,7 +490,7 @@ __attribute__((always_inline)) static void generateServerHello(uint32_t *buf) {
     sh->extensions[8] = 0x00;        // Elliptic Curve secp256r1
     sh->extensions[9] = 0x23;        // Elliptic Curve secp256r1
     // Keine "Supported Point Formats Extension" entspricht "Uncompressed only"
-    stack_push((uint8_t *) buf, sizeof(DTLSContent_t) + 1 + sizeof(ServerHello_t) + 10);
+    flash_stack_push((uint8_t *) buf, sizeof(DTLSContent_t) + 1 + sizeof(ServerHello_t) + 10);
 
     server_random_offset = created_offset + (uint32_t) &sh->random - (uint32_t) buf;
 
@@ -500,15 +501,15 @@ __attribute__((always_inline)) static void generateServerHello(uint32_t *buf) {
 
     KeyExchange_t *ske = (KeyExchange_t *) (content->payload + content->len);
     ske->pskHint_len = uip_htons(LEN_UUID);
-    nvm_getVar(ske->pskHint, RES_UUID, LEN_UUID);
+    flash_getVar(ske->pskHint, RES_UUID, LEN_UUID);
     ske->curve_params.curve_type = named_curve;
     ske->curve_params.namedcurve = secp256r1;
     ske->public_key.len = 65;
     ske->public_key.type = uncompressed;
-    stack_push((uint8_t *) buf, sizeof(DTLSContent_t) + 1 + sizeof(KeyExchange_t) - 64); // -64 weil public key danach geschrieben wird
+    flash_stack_push((uint8_t *) buf, sizeof(DTLSContent_t) + 1 + sizeof(KeyExchange_t) - 64); // -64 weil public key danach geschrieben wird
 
-    nvm_getVar(buf + 16, RES_ECC_BASE_X, LEN_ECC_BASE_X);
-    nvm_getVar(buf + 24, RES_ECC_BASE_Y, LEN_ECC_BASE_Y);
+    flash_getVar(buf + 16, RES_ECC_BASE_X, LEN_ECC_BASE_X);
+    flash_getVar(buf + 24, RES_ECC_BASE_Y, LEN_ECC_BASE_Y);
     #if DEBUG_ECC
         {
         uint32_t i;
@@ -547,12 +548,12 @@ __attribute__((always_inline)) static void generateServerHello(uint32_t *buf) {
         printBytes("_S_PUB_KEY-X", (uint8_t *) (buf), 32);
         printBytes("_S_PUB_KEY-Y", (uint8_t *) (buf + 8), 32);
     #endif
-    stack_push((uint8_t *) buf, 64);
+    flash_stack_push((uint8_t *) buf, 64);
 
     //ServerHelloDone
     content->type = server_hello_done;
     content->len = con_length_0;
-    stack_push((uint8_t *) buf, sizeof(DTLSContent_t));
+    flash_stack_push((uint8_t *) buf, sizeof(DTLSContent_t));
 }
 
 __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_t *cke, uint8_t *buf) {
@@ -603,8 +604,8 @@ __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_
     buf[18] = 0;
     buf[19] = 32;
     memcpy(buf + 52, "master secret", 13);
-    stack_read(buf + 65, client_random_offset, 32);
-    stack_read(buf + 97, server_random_offset, 32);
+    flash_stack_read(buf + 65, client_random_offset, 32);
+    flash_stack_read(buf + 97, server_random_offset, 32);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     // |016PSK064|   Secret-Px   |   "master secret" + C-Rand + S-Rand   |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
@@ -635,8 +636,8 @@ __attribute__((always_inline)) static void processClientKeyExchange(KeyExchange_
 
     memcpy(buf + 40, buf + 132, 48);
     memcpy(buf + 88, "key expansion", 13);
-    stack_read(buf + 101, server_random_offset, 32);
-    stack_read(buf + 133, client_random_offset, 32);
+    flash_stack_read(buf + 101, server_random_offset, 32);
+    flash_stack_read(buf + 133, client_random_offset, 32);
     //  0                   1                   2                   3                   4                   5
     //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
     // |#|#|#|#|#|#|#|#|#|#|     Master-Secret     |   "key expansion" + S-Rand + C-Rand   |#|#|#|#|#|#|#|#|#|#|
@@ -665,8 +666,8 @@ __attribute__((always_inline)) static void generateFinished(uint8_t *buf, uint8_
     CMAC_CTX ctx;
     cmac_init(&ctx, buf + 120, 16);
 
-    for (i = 0; i < stack_size(); i++) {
-      stack_read(buf + 136, i, 1);
+    for (i = 0; i < flash_stack_size(); i++) {
+      flash_stack_read(buf + 136, i, 1);
       cmac_update(&ctx, buf + 136, 1);
     }
     cmac_finish(&ctx, buf + 103, 16);
@@ -684,8 +685,8 @@ __attribute__((always_inline)) static void generateFinished(uint8_t *buf, uint8_
         printBytes("Client Finished", buf, 12);
     #endif
 
-    for (i = 0; i < stack_size(); i++) {
-      stack_read(buf + 136, i, 1);
+    for (i = 0; i < flash_stack_size(); i++) {
+      flash_stack_read(buf + 136, i, 1);
       cmac_update(&ctx, buf + 136, 1);
     }
     cmac_update(&ctx, client_finished, 14);

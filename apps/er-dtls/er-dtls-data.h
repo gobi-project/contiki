@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "flash-store.h"
+#include "flash.h"
 #include "contiki-net.h"
 
 typedef struct { // 4 + 16 + 2 + 2 + 8 + 32 = 64
@@ -135,6 +135,6 @@ int insertKeyBlock(uip_ipaddr_t *addr, KeyBlock_t *key_block);
   * \return   0 falls keine Session zur IP gefunden wurde. Ansonsten Zeiger
   *           auf die Position im Flash-Speicher, an der der Schlüsselblock liegt.
   */
-fpoint_t getKeyBlock(uip_ipaddr_t *addr, uint16_t epoch, int update);
+flash_addr_t getKeyBlock(uip_ipaddr_t *addr, uint16_t epoch, int update);
 
 #endif /* __ER_DTLS_DATA_H__ */

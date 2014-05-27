@@ -18,6 +18,7 @@ ipv6/multicast/econotag \
 ipv6/multicast/cc2538dk \
 econotag-aes-test/econotag \
 econotag-ecc-test/econotag \
+econotag-flash-test/econotag \
 
 TOOLS=
 

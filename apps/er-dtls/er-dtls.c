@@ -90,8 +90,8 @@ void dtls_parse_message(DTLSRecord_t *record, uint8_t len, CoapData_t *coapdata)
             uint8_t oldMAC[MAC_LEN];
             memcpy(oldMAC, payload + len, MAC_LEN);
             uint8_t key[16];
-            nvm_getVar(key, key_block + KEY_BLOCK_CLIENT_KEY, 16);
-            nvm_getVar(nonce, key_block + KEY_BLOCK_CLIENT_IV, 4);
+            flash_getVar(key, key_block + KEY_BLOCK_CLIENT_KEY, 16);
+            flash_getVar(nonce, key_block + KEY_BLOCK_CLIENT_IV, 4);
             #if DEBUG
                 uint32_t i;
                 PRINTF("Bei Paketempfang berechnete Nonce:");
@@ -187,8 +187,8 @@ void dtls_send_message(struct uip_udp_conn *conn, const void *data, uint8_t len)
 
     if (key_block) {
         uint8_t key[16];
-        nvm_getVar(key, key_block + KEY_BLOCK_SERVER_KEY, 16);
-        nvm_getVar(nonce, key_block + KEY_BLOCK_SERVER_IV, 4);
+        flash_getVar(key, key_block + KEY_BLOCK_SERVER_KEY, 16);
+        flash_getVar(nonce, key_block + KEY_BLOCK_SERVER_IV, 4);
         #if DEBUG
             uint32_t i;
             PRINTF("Bei Paketversand berechnete Nonce:");

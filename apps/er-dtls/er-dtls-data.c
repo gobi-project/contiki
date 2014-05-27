@@ -5,7 +5,8 @@
 #include "ecc.h"
 #include "er-dtls-random.h"
 #include "er-dtls-psk.h"
-#include "flash-store.h"
+#include "flash.h"
+#include "../../tools/blaster/blaster.h"
 #include "storage.h"
 
 /*---------------------------------------------------------------------------*/
@@ -25,7 +26,7 @@ uint32_t seq_num_w[SESSION_LIST_LEN];
 
         Session_t *session = (Session_t *) buffer;
         Session_t *s = (Session_t *) RES_SESSION_LIST;
-        nvm_getVar(buffer, (fpoint_t) &s[index], sizeof(Session_t));
+        flash_getVar(buffer, (flash_addr_t) &s[index], sizeof(Session_t));
         printf("    Index: %u \n    Session-ID: %.*s\n    IP: ", index, 8, session->session);
         for (i = 0; i < 16; i++) printf("%02X", ((uint8_t *) &session->addr)[i]);
         printf("\n    Epoch: %u\n    Valid: %u\n    Private-Key: ", session->epoch, session->valid);
@@ -33,10 +34,10 @@ uint32_t seq_num_w[SESSION_LIST_LEN];
         printf("\n    Sequenznummer: Read: %u Write %u", seq_num_r[index], seq_num_w[index]);
 
         KeyBlock_t *kb = (KeyBlock_t *) RES_KEY_BLOCK_LIST;
-        nvm_getVar(buffer, (fpoint_t) &kb[2 * index], sizeof(KeyBlock_t));
+        flash_getVar(buffer, (flash_addr_t) &kb[2 * index], sizeof(KeyBlock_t));
         printf("\n        Key-Block 1: ");
         for (i = 0; i < sizeof(KeyBlock_t); i++) printf("%02X", buffer[i]);
-        nvm_getVar(buffer, (fpoint_t) &kb[(2 * index) + 1], sizeof(KeyBlock_t));
+        flash_getVar(buffer, (flash_addr_t) &kb[(2 * index) + 1], sizeof(KeyBlock_t));
         printf("\n        Key-Block 2: ");
         for (i = 0; i < sizeof(KeyBlock_t); i++) printf("%02X", buffer[i]);
         printf("\n");
@@ -61,7 +62,7 @@ int createSession(uint32_t *buf, uip_ipaddr_t *addr) {
     int index = getIndexOf(addr);
 
     // Ein neuer private Key für ECDH wird in jedem Fall generiert
-    nvm_getVar(buf, RES_ECC_ORDER, LEN_ECC_ORDER);
+    flash_getVar(buf, RES_ECC_ORDER, LEN_ECC_ORDER);
     #if DEBUG
         printf("ECC_ORDER: ");
         for (i = 0; i < 8; i++) printf("%08X", uip_htonl(buf[i]));
@@ -75,7 +76,7 @@ int createSession(uint32_t *buf, uip_ipaddr_t *addr) {
     // setzten des neuen private Keys weiterentwickelt. Ansonsten
     // wird alles gesetzt.
     if (index >= 0) {
-        nvm_setVar(session->private_key, (fpoint_t) s[index].private_key, 32);
+        flash_setVar(session->private_key, (flash_addr_t) s[index].private_key, 32);
         PRINTF("Session aktualisiert:\n");
         PRINTSESSION(index);
     } else {
@@ -85,12 +86,12 @@ int createSession(uint32_t *buf, uip_ipaddr_t *addr) {
 
         uip_ipaddr_copy(&session->addr, addr);
         for (i = 0; i < 8; i++) {
-            nvm_getVar(session->session + i, RES_ANSCHARS + (random_8() & 0x3F), 1);
+            flash_getVar(session->session + i, RES_ANSCHARS + (random_8() & 0x3F), 1);
         } // TODO session-id auf doppel prüfen
         session->epoch = 0;
         session->valid = 1;
 
-        nvm_setVar(session, (fpoint_t) &s[index], sizeof(Session_t));
+        flash_setVar(session, (flash_addr_t) &s[index], sizeof(Session_t));
         PRINTF("Session erstellt:\n");
         PRINTSESSION(index);
         seq_num_r[index] = 1;
@@ -112,15 +113,15 @@ int getSessionData(uint8_t *dst, uip_ipaddr_t *addr, SessionDataType type) {
     Session_t *s = (Session_t *) RES_SESSION_LIST;
     switch (type) {
         case session_id:
-            nvm_getVar(dst, (fpoint_t) &s[i].session, 8);
+            flash_getVar(dst, (flash_addr_t) &s[i].session, 8);
             return 8;
         case session_epoch:
-            nvm_getVar(&epo_buf, (fpoint_t) &s[i].epoch, 2);
+            flash_getVar(&epo_buf, (flash_addr_t) &s[i].epoch, 2);
             epo_buf = uip_htons(epo_buf);
             memcpy(dst, &epo_buf, 2);
             return 2;
         case session_key:
-            nvm_getVar(dst, (fpoint_t) &s[i].private_key, 32);
+            flash_getVar(dst, (flash_addr_t) &s[i].private_key, 32);
             return 32;
         case session_num_write:
             num_buf = uip_htonl(seq_num_w[i]);
@@ -162,7 +163,7 @@ int deleteSession(uip_ipaddr_t *addr) {
 
     uint16_t valid = 0;
     Session_t *s = (Session_t *) RES_SESSION_LIST; // Pointer auf Flashspeicher
-    nvm_setVar(&valid, (fpoint_t) &s[index].valid, 2);
+    flash_setVar(&valid, (flash_addr_t) &s[index].valid, 2);
     return 0;
 }
 
@@ -176,13 +177,13 @@ int insertKeyBlock(uip_ipaddr_t *addr, KeyBlock_t *key_block) {
     PRINTF("Daten vor Insert KeyBlock:\n");
     PRINTSESSION(index);
     KeyBlock_t *ck = (KeyBlock_t *) RES_KEY_BLOCK_LIST;
-    nvm_setVar(key_block, (fpoint_t) &ck[(2 * index) + 1], sizeof(KeyBlock_t));
+    flash_setVar(key_block, (flash_addr_t) &ck[(2 * index) + 1], sizeof(KeyBlock_t));
     PRINTF("Daten nach Insert KeyBlock:\n");
     PRINTSESSION(index);
     return 0;
 }
 
-fpoint_t getKeyBlock(uip_ipaddr_t *addr, uint16_t epoch, int update) {
+flash_addr_t getKeyBlock(uip_ipaddr_t *addr, uint16_t epoch, int update) {
     if (epoch == 0) return 0;
 
     int index = getIndexOf(addr);
@@ -192,12 +193,12 @@ fpoint_t getKeyBlock(uip_ipaddr_t *addr, uint16_t epoch, int update) {
 
     Session_t *s = (Session_t *) RES_SESSION_LIST;
     KeyBlock_t *kb = (KeyBlock_t *) RES_KEY_BLOCK_LIST;
-    if (nvm_cmp(&epoch, (fpoint_t) &s[index].epoch, 2) == 0) {
-        return (fpoint_t) &kb[2 * index];
+    if (flash_cmp(&epoch, (flash_addr_t) &s[index].epoch, 2) == 0) {
+        return (flash_addr_t) &kb[2 * index];
     }
     epoch--;
-    if (nvm_cmp(&epoch, (fpoint_t) &s[index].epoch, 2) == 0) {
-        return (fpoint_t) &kb[(2 * index) + 1];
+    if (flash_cmp(&epoch, (flash_addr_t) &s[index].epoch, 2) == 0) {
+        return (flash_addr_t) &kb[(2 * index) + 1];
     }
 
     return 0;
@@ -211,9 +212,9 @@ static int getIndexOf(uip_ipaddr_t *addr) {
 
     unsigned int i;
     for (i = 0; i < SESSION_LIST_LEN; i++) {
-        if (nvm_cmp(&valid, (fpoint_t) &s[i].valid, 2) == 0) {
+        if (flash_cmp(&valid, (flash_addr_t) &s[i].valid, 2) == 0) {
             if (addr == NULL) return i;
-            if (nvm_cmp(addr, (fpoint_t) &s[i].addr, sizeof(uip_ipaddr_t)) == 0) {
+            if (flash_cmp(addr, (flash_addr_t) &s[i].addr, sizeof(uip_ipaddr_t)) == 0) {
                 return i;
             }
         }
@@ -225,18 +226,18 @@ __attribute__((always_inline)) static void checkEpochIncrease(unsigned int index
     epoch--;
     Session_t *s = (Session_t *) RES_SESSION_LIST;
 
-    if (nvm_cmp(&epoch, (fpoint_t) &s[index].epoch, 2) == 0) {
+    if (flash_cmp(&epoch, (flash_addr_t) &s[index].epoch, 2) == 0) {
         PRINTF("Daten vor Epoch-Increase:\n");
         PRINTSESSION(index);
 
         epoch++;
-        nvm_setVar(&epoch, (fpoint_t) &s[index].epoch, 2);
+        flash_setVar(&epoch, (flash_addr_t) &s[index].epoch, 2);
         
         uint8_t buf[2 * sizeof(KeyBlock_t)];
         KeyBlock_t *kb = (KeyBlock_t *) RES_KEY_BLOCK_LIST;
-        nvm_getVar(buf, (fpoint_t) &kb[(2 * index) + 1], sizeof(KeyBlock_t));
+        flash_getVar(buf, (flash_addr_t) &kb[(2 * index) + 1], sizeof(KeyBlock_t));
         memset(buf + sizeof(KeyBlock_t), 0, sizeof(KeyBlock_t));
-        nvm_setVar(buf, (fpoint_t) &kb[2 * index], 2 * sizeof(KeyBlock_t));
+        flash_setVar(buf, (flash_addr_t) &kb[2 * index], 2 * sizeof(KeyBlock_t));
 
         seq_num_r[index] = 1;
         seq_num_w[index] = 1;
