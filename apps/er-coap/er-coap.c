@@ -331,8 +331,10 @@ coap_serialize_message(void *packet, uint8_t *buffer)
 
   /* empty packet, dont need to do more stuff */
   if(!coap_pkt->code) {
+    PRINTF("-Done serializing empty message at %p-\n", option);
     return 4;
   }
+
   /* set Token */
   PRINTF("Token (len %u)", coap_pkt->token_len);
   option = coap_pkt->buffer + COAP_HEADER_LEN;
@@ -1040,8 +1042,8 @@ coap_get_header_block2(void *packet, uint32_t *num, uint8_t *more,
 
   if(!IS_OPTION(coap_pkt, COAP_OPTION_BLOCK2)) {
     return 0;
-    /* pointers may be NULL to get only specific block parameters */
   }
+  /* pointers may be NULL to get only specific block parameters */
   if(num != NULL) {
     *num = coap_pkt->block2_num;
   }
@@ -1087,8 +1089,8 @@ coap_get_header_block1(void *packet, uint32_t *num, uint8_t *more,
 
   if(!IS_OPTION(coap_pkt, COAP_OPTION_BLOCK1)) {
     return 0;
-    /* pointers may be NULL to get only specific block parameters */
   }
+  /* pointers may be NULL to get only specific block parameters */
   if(num != NULL) {
     *num = coap_pkt->block1_num;
   }

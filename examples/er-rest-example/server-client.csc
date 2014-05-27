@@ -7,7 +7,11 @@
   <project EXPORT="discard">[APPS_DIR]/collect-view</project>
   <project EXPORT="discard">[APPS_DIR]/powertracker</project>
   <simulation>
+<<<<<<< HEAD
     <title>Erbium REST with SLIP Radio</title>
+=======
+    <title>REST with RPL router</title>
+>>>>>>> main/master
     <speedlimit>1.0</speedlimit>
     <randomseed>123456</randomseed>
     <motedelay_us>1000000</motedelay_us>
@@ -138,8 +142,8 @@
     <width>259</width>
     <z>5</z>
     <height>179</height>
-    <location_x>0</location_x>
-    <location_y>0</location_y>
+    <location_x>2</location_x>
+    <location_y>1</location_y>
   </plugin>
   <plugin>
     se.sics.cooja.plugins.Visualizer
@@ -162,6 +166,7 @@
     se.sics.cooja.plugins.LogListener
     <plugin_config>
       <filter />
+      <formatted_time />
       <coloring />
     </plugin_config>
     <width>559</width>
@@ -173,7 +178,14 @@
   <plugin>
     se.sics.cooja.plugins.RadioLogger
     <plugin_config>
+<<<<<<< HEAD
       <split>316</split>
+=======
+      <split>150</split>
+      <formatted_time />
+      <showdups>false</showdups>
+      <hidenodests>false</hidenodests>
+>>>>>>> main/master
       <analyzers name="6lowpan" />
     </plugin_config>
     <width>639</width>
@@ -201,8 +213,12 @@
       <showRadioHW />
       <showLEDs />
       <showWatchpoints />
+<<<<<<< HEAD
       <split>125</split>
       <zoomfactor>2436.498792140696</zoomfactor>
+=======
+      <zoomfactor>25.49079397896416</zoomfactor>
+>>>>>>> main/master
     </plugin_config>
     <width>1590</width>
     <z>2</z>
