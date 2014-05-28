@@ -89,9 +89,9 @@ main(int nArgs, char **argv)
       fprintf(stderr, "Unable to read config file.\n");
       exit(EXIT_FAILURE);
     }
+    fprintf(stdout, "Working on %s ... ", argv[config]);
 
     config_lookup_string(&cfg, "input", &str_val);
-    fprintf(stdout, "Working on %s ... ", str_val);
     FILE *in_bin = openFile(str_val, ".bin", "r");
 
     config_lookup_string(&cfg, "output", &str_val);
@@ -106,7 +106,7 @@ main(int nArgs, char **argv)
     /* Set original length of firmware in little endian format  ------------------- */
     unsigned int length = i - 8;
     memcpy(output + 4, (const void *)&length, 4);
-    fprintf(out_txt, "Länge: %u = 0x%08x\n", length, length);
+    fprintf(out_txt, "Length: %u = 0x%08x\n", length, length);
 
     /* Fill additional flash with zeros for initialisation */
     for(; i < 0x1F000; i++) {
@@ -240,7 +240,7 @@ main(int nArgs, char **argv)
     time_t my_time = time(NULL);
     memcpy(output + RES_FLASHTIME, (void *)&my_time, LEN_FLASHTIME);
     struct tm *timeinfo = localtime(&my_time);
-    fwrite(buf, 1, strftime((char *)buf, 64, "Erzeugt am %d.%m.%Y um %H:%M:%S", timeinfo), out_txt);
+    fwrite(buf, 1, strftime((char *)buf, 64, "Created on %d.%m.%Y um %H:%M:%S", timeinfo), out_txt);
 
     /* Output result -------------------------------------------------------------- */
     for(i = 4; i < 0x1F000; i++) {
