@@ -39,7 +39,7 @@
 #ifndef ER_COAP_CONSTANTS_H_
 #define ER_COAP_CONSTANTS_H_
 
-#ifdef WITH_DTLS
+#if WITH_DTLS
 #define COAP_DEFAULT_PORT                    5684
 #else
 #define COAP_DEFAULT_PORT                    5683

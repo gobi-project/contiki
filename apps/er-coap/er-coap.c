@@ -425,7 +425,7 @@ coap_send_message(uip_ipaddr_t *addr, uint16_t port, uint8_t *data,
   uip_ipaddr_copy(&udp_conn->ripaddr, addr);
   udp_conn->rport = port;
 
-#ifdef WITH_DTLS
+#if WITH_DTLS
   dtls_send_message(udp_conn, data, length);
 #else
   uip_udp_packet_send(udp_conn, data, length);
