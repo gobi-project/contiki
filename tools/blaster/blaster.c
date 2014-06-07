@@ -124,25 +124,25 @@ main(int nArgs, char **argv)
              "</d/nb>;rt=\"dev.info\";if=\"core.rp\"";
     memcpy(output + RES_D_CORE, buffer, LEN_D_CORE);
 
-    buffer = "{\"bn\":\"/led_b\",\"bu\":\"B\",\"e\":[{\"v\":\"%d\"}]}\x00";
+    buffer = "{\"bn\":\"/led_b\",\"bu\":\"B\",\"e\":[{\"v\":%d}]}\x00";
     memcpy(output + RES_SENML_LEDB, buffer, LEN_SENML_LEDB);
-    buffer = "{\"bn\":\"/led_d\",\"bu\":\"%%\",\"e\":[{\"v\":\"%d\"}]}\x00";
+    buffer = "{\"bn\":\"/led_d\",\"bu\":\"%%\",\"e\":[{\"v\":%d}]}\x00";
     memcpy(output + RES_SENML_LEDD, buffer, LEN_SENML_LEDD);
-    buffer = "{\"bn\":\"/tmp\",\"bu\":\"%%degC\",\"e\":[{\"v\":\"%d.%d\"}]}\x00";
+    buffer = "{\"bn\":\"/tmp\",\"bu\":\"%%degC\",\"e\":[{\"v\":%d.%d}]}\x00";
     memcpy(output + RES_SENML_TMP, buffer, LEN_SENML_TMP);
-    buffer = "{\"bn\":\"/lux\",\"bu\":\"%%lx\",\"e\":[{\"v\":\"%d\"}]}\x00";
+    buffer = "{\"bn\":\"/lux\",\"bu\":\"%%lx\",\"e\":[{\"v\":%d}]}\x00";
     memcpy(output + RES_SENML_LUX, buffer, LEN_SENML_LUX);
-    buffer = "{\"bn\":\"/hum\",\"bu\":\"%%RH\",\"e\":[{\"v\":\"%d.%d\"}]}\x00";
+    buffer = "{\"bn\":\"/hum\",\"bu\":\"%%RH\",\"e\":[{\"v\":%d.%d}]}\x00";
     memcpy(output + RES_SENML_HUM, buffer, LEN_SENML_HUM);
-    buffer = "{\"bn\":\"/tmp\",\"bu\":\"%%degF\",\"e\":[{\"v\":\"%d.%d\"}]}\x00";
+    buffer = "{\"bn\":\"/tmp\",\"bu\":\"%%degF\",\"e\":[{\"v\":%d.%d}]}\x00";
     memcpy(output + RES_SENML_TMP_F, buffer, LEN_SENML_TMP_F);
-    buffer = "{\"bn\":\"/val\",\"bu\":\"%%\",\"e\":[{\"v\":\"%d.%d\"}]}\x00";
+    buffer = "{\"bn\":\"/val\",\"bu\":\"%%\",\"e\":[{\"v\":%d.%d}]}\x00";
     memcpy(output + RES_SENML_VAL, buffer, LEN_SENML_VAL);
-    buffer = "{\"bn\":\"/btn\",\"bu\":\"B\",\"e\":[{\"v\":\"%d\"}]}\x00";
+    buffer = "{\"bn\":\"/btn\",\"bu\":\"B\",\"e\":[{\"v\":%d}]}\x00";
     memcpy(output + RES_SENML_BUTTON, buffer, LEN_SENML_BUTTON);
-    buffer = "{\"bn\":\"/rgb\",\"bu\":\"ARGB\",\"e\":[{\"v\":\"%u\"}]}\x00";
+    buffer = "{\"bn\":\"/rgb\",\"bu\":\"ARGB\",\"e\":[{\"v\":%u}]}\x00";
     memcpy(output + RES_SENML_RGB, buffer, LEN_SENML_RGB);
-    buffer = "{\"bn\":\"/swt\",\"bu\":\"B\",\"e\":[{\"v\":\"%d\"}]}\x00";
+    buffer = "{\"bn\":\"/swt\",\"bu\":\"B\",\"e\":[{\"v\":%d}]}\x00";
     memcpy(output + RES_SENML_BOUT, buffer, LEN_SENML_BOUT);
 
     /* Contiki configuration ------------------------------------------------------ */

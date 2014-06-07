@@ -49,25 +49,25 @@
 #define LEN_D_CORE       257
 
 #define RES_SENML_LEDB   0x1D400
-#define LEN_SENML_LEDB   42
+#define LEN_SENML_LEDB   40
 #define RES_SENML_LEDD   0x1D440
-#define LEN_SENML_LEDD   43
+#define LEN_SENML_LEDD   41
 #define RES_SENML_TMP    0x1D480
-#define LEN_SENML_TMP    48
+#define LEN_SENML_TMP    46
 #define RES_SENML_LUX    0x1D520
-#define LEN_SENML_LUX    43
+#define LEN_SENML_LUX    41
 #define RES_SENML_HUM    0x1D560
-#define LEN_SENML_HUM    46
+#define LEN_SENML_HUM    44
 #define RES_SENML_TMP_F  0x1D600
-#define LEN_SENML_TMP_F  48
+#define LEN_SENML_TMP_F  46
 #define RES_SENML_VAL    0x1D640
-#define LEN_SENML_VAL    44
+#define LEN_SENML_VAL    42
 #define RES_SENML_BUTTON 0x1D680
-#define LEN_SENML_BUTTON 40
+#define LEN_SENML_BUTTON 38
 #define RES_SENML_RGB    0x1D720
-#define LEN_SENML_RGB    43
+#define LEN_SENML_RGB    41
 #define RES_SENML_BOUT   0x1D760
-#define LEN_SENML_BOUT   40
+#define LEN_SENML_BOUT   38
 
 #define RES_CONFIG       0x1E000
 #define LEN_CONFIG       0x12
