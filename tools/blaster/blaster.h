@@ -53,13 +53,13 @@
 #define RES_SENML_LEDD   0x1D440
 #define LEN_SENML_LEDD   41
 #define RES_SENML_TMP    0x1D480
-#define LEN_SENML_TMP    46
+#define LEN_SENML_TMP    43
 #define RES_SENML_LUX    0x1D520
-#define LEN_SENML_LUX    41
+#define LEN_SENML_LUX    39
 #define RES_SENML_HUM    0x1D560
 #define LEN_SENML_HUM    44
 #define RES_SENML_TMP_F  0x1D600
-#define LEN_SENML_TMP_F  46
+#define LEN_SENML_TMP_F  43
 #define RES_SENML_VAL    0x1D640
 #define LEN_SENML_VAL    42
 #define RES_SENML_BUTTON 0x1D680
