@@ -36,17 +36,19 @@ void dtls_parse_message(DTLSRecord_t *record, uint8_t len, CoapData_t *coapdata)
     len -= sizeof(DTLSRecord_t);
     uint8_t type = record->type;
     uint8_t *payload = record->payload;
-    uint8_t nonce[12] = {0, 0, 0, 0, 0, record->epoch, 0, 0, 0, 0, 0, 0};
+    // 12 Byte nonce + 5 Byte für Additional Data
+    uint8_t nonce[17] = {0, 0, 0, 0, 0, record->epoch, 0, 0, 0, 0, 0, 0, type + 20, 254, 253, 0, 0};
 
     returnType = record->type;
 
     if (record->type == type_8_bit) {
+        nonce[12] = payload[0];
         type = payload[0] - 20;
         len -= 1;
         payload += 1;
     }
     if (record->version == version_16_bit) {
-        if (payload[0] == 3 && payload[1] == 3) {
+        if (payload[0] == 254 && payload[1] == 253) {
             record->version = dtls_1_2;
         }
         len -= 2;
@@ -73,6 +75,7 @@ void dtls_parse_message(DTLSRecord_t *record, uint8_t len, CoapData_t *coapdata)
         payload += record->length;
     }
 
+    nonce[16] = len;
     uint32_t key_block = getKeyBlock(addr, EPOCH, 1);
 
     // Durch getKeyBlock wurde eventuell die Epoche weitergeschaltet
@@ -97,9 +100,12 @@ void dtls_parse_message(DTLSRecord_t *record, uint8_t len, CoapData_t *coapdata)
                 PRINTF("Bei Paketempfang berechnete Nonce:");
                 for (i = 0; i < 12; i++) PRINTF(" %02X", nonce[i]);
                 PRINTF("\n");
+                PRINTF("Bei Paketempfang berechnete additionale Data:");
+                for (i = 6; i < 17; i++) PRINTF(" %02X", nonce[i]);
+                PRINTF("\n");
             #endif
-            ccm_crypt(key, nonce, 12, MAC_LEN, 0, payload, len, NULL, 0);
-            ccm_crypt(key, nonce, 12, MAC_LEN, 1, payload, len, NULL, 0);
+            ccm_crypt(key, nonce, 12, MAC_LEN, 0, payload, len, nonce + 6, 11);
+            ccm_crypt(key, nonce, 12, MAC_LEN, 1, payload, len, nonce + 6, 11);
             if (memcmp(oldMAC, payload + len, MAC_LEN)) {
                 PRINTF("DTLS-MAC-Fehler. Paket ungültig\n");
                 sendAlert(addr, UIP_UDP_BUF->srcport, fatal, bad_record_mac);
@@ -148,7 +154,8 @@ void dtls_parse_message(DTLSRecord_t *record, uint8_t len, CoapData_t *coapdata)
 
 void dtls_send_message(struct uip_udp_conn *conn, const void *data, uint8_t len) {
 
-    uint8_t nonce[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    // 12 Byte nonce + 5 Byte für Additional Data
+    uint8_t nonce[17] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, returnType + 20, 254, 253, 0, len + MAC_LEN};
 
     getSessionData(nonce + 4, &conn->ripaddr, session_epoch);
 
@@ -194,8 +201,12 @@ void dtls_send_message(struct uip_udp_conn *conn, const void *data, uint8_t len)
             PRINTF("Bei Paketversand berechnete Nonce:");
             for (i = 0; i < 12; i++) PRINTF(" %02X", nonce[i]);
             PRINTF("\n");
+            PRINTF("Bei Paketversand berechnete additionale Data:");
+            for (i = 6; i < 17; i++) PRINTF(" %02X", nonce[i]);
+            PRINTF("\n");
         #endif
-        ccm_crypt(key, nonce, 12, MAC_LEN, 0, record->payload + headerAdd, len, NULL, 0);
+
+        ccm_crypt(key, nonce, 12, MAC_LEN, 0, record->payload + headerAdd, len, nonce + 6, 11);
         headerAdd += MAC_LEN;
     }
 

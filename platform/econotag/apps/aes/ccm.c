@@ -85,6 +85,14 @@ ccm_crypt(uint8_t key[16], uint8_t *nonce, size_t nonce_len, size_t mac_len, uin
   aes_setData(&(ASM->DATA0), abs_0, 16);
   aes_round();
 
+#if DEBUG
+  uint8_t debug_mac[mac_len];
+  aes_getData(debug_mac, &(ASM->CBC0_RESULT), mac_len);
+  printf("MAC after B0: ");
+  print_hex(debug_mac, mac_len);
+  printf("\n");
+#endif
+
   /* use additional data for mac calculation */
   if(adata != NULL && adata_len > 0) {
     uint8_t lenblock[16];
@@ -110,6 +118,13 @@ ccm_crypt(uint8_t key[16], uint8_t *nonce, size_t nonce_len, size_t mac_len, uin
       aes_round();
     }
   }
+
+#if DEBUG
+  aes_getData(debug_mac, &(ASM->CBC0_RESULT), mac_len);
+  printf("MAC after additional Data: ");
+  print_hex(debug_mac, mac_len);
+  printf("\n");
+#endif
 
   /* initalize counter. nonce is already included */
   abs_0[0] = 14 - nonce_len;
@@ -139,6 +154,12 @@ ccm_crypt(uint8_t key[16], uint8_t *nonce, size_t nonce_len, size_t mac_len, uin
 
   /* read cbc result */
   aes_getData(&data[data_len], &(ASM->CBC0_RESULT), mac_len);
+
+#if DEBUG
+  printf("MAC after Data: ");
+  print_hex(&data[data_len], mac_len);
+  printf("\n");
+#endif
 
   /* generate a_0 generieren, encrypt to s_0 and x-or with cbc result */
   for(i = 15; i > nonce_len; i--) {
