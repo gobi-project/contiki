@@ -75,7 +75,7 @@ void dtls_parse_message(DTLSRecord_t *record, uint8_t len, CoapData_t *coapdata)
         payload += record->length;
     }
 
-    nonce[16] = len;
+    nonce[16] = len - MAC_LEN;
     uint32_t key_block = getKeyBlock(addr, EPOCH, 1);
 
     // Durch getKeyBlock wurde eventuell die Epoche weitergeschaltet
@@ -155,7 +155,7 @@ void dtls_parse_message(DTLSRecord_t *record, uint8_t len, CoapData_t *coapdata)
 void dtls_send_message(struct uip_udp_conn *conn, const void *data, uint8_t len) {
 
     // 12 Byte nonce + 5 Byte für Additional Data
-    uint8_t nonce[17] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, returnType + 20, 254, 253, 0, len + MAC_LEN};
+    uint8_t nonce[17] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, returnType + 20, 254, 253, 0, len};
 
     getSessionData(nonce + 4, &conn->ripaddr, session_epoch);
 

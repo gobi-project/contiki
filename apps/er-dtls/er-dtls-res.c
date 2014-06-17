@@ -245,16 +245,24 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                 flash_getVar(buf + 28, key_block + KEY_BLOCK_CLIENT_IV, 4);
                 memset(buf + 34, 0, 6);
                 flash_getVar(buf + 12, key_block + KEY_BLOCK_CLIENT_KEY, 16);
+                uint8_t additional_data[11];
+                memset(additional_data, 0, 11);
+                additional_data[6] = handshake + 20;  // Type Handshake
+                additional_data[7] = 254;             // DTLS 1.
+                additional_data[8] = 253;             // DTLS  .2
+                additional_data[9] = 0;               // Länge
+                additional_data[10] = 14;             // Länge
                 //  0                   1                   2                   3                   4                   5
                 //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
                 // |#|#|#|  Key  |Nonce|     Master-Secret     |#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|#|
                 #if DEBUG_FIN
                     printBytes("Nonce zum Entschlüsseln von Finished", buf + 28, 12);
                     printBytes("Key zum Entschlüsseln von Finished", buf + 12, 16);
+                    printBytes("Additional Data zum Entschlüsseln von Finished", additional_data, 11);
                 #endif
                 memcpy(buf + 88, ((uint8_t *) content) + 14, MAC_LEN);
-                ccm_crypt(buf + 12, buf + 28, 12, MAC_LEN, 0, (uint8_t *) content, 14, NULL, 0);
-                ccm_crypt(buf + 12, buf + 28, 12, MAC_LEN, 1, (uint8_t *) content, 14, NULL, 0);
+                ccm_crypt(buf + 12, buf + 28, 12, MAC_LEN, 0, (uint8_t *) content, 14, additional_data, 11);
+                ccm_crypt(buf + 12, buf + 28, 12, MAC_LEN, 1, (uint8_t *) content, 14, additional_data, 11);
                 if (memcmp(buf + 88, ((uint8_t *) content) + 14, MAC_LEN)) {
                     PRINTF("DTLS-MAC-Fehler im Finished. Paket ungültig\n");
                     generateAlert(response, buffer, decrypt_error); // nicht bad_record_mac weil finished betroffen
@@ -306,8 +314,9 @@ void dtls_handler(void* request, void* response, uint8_t *buffer, uint16_t prefe
                 #if DEBUG_FIN
                     printBytes("Nonce zum Verschlüsseln von Finished", buf + 28, 12);
                     printBytes("Key zum Verschlüsseln von Finished", buf + 40, 16);
+                    printBytes("Additional Data zum Verschlüsseln von Finished", additional_data, 11);
                 #endif
-                ccm_crypt(buf + 40, buf + 28, 12, MAC_LEN, 0, buffer + 3, 14, NULL, 0);
+                ccm_crypt(buf + 40, buf + 28, 12, MAC_LEN, 0, buffer + 3, 14, additional_data, 11);
                 coap_set_payload(response, buffer, 25);
             } else {
                 PRINTF("Erwartetes ChangeCipherSpec nicht erhalten\n");
