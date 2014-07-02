@@ -1,4 +1,5 @@
 #include "htimer.h"
+#include "hibernate_func.h"
 
 #include "rtc.h"
 

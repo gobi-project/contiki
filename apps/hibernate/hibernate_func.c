@@ -1,4 +1,4 @@
-#include "hibernate.h"
+#include "hibernate_func.h"
 
 /* mc1322x */
 #include "mc1322x.h"
@@ -21,11 +21,26 @@ bit(8) -  power GPIO.
 */
 void hibernate(uint32_t timeout, uint8_t kbi_index, uint32_t flags) 
 {
+#if USE_32KHZ
+	clear_bit(*CRM_RINGOSC_CNTL,0);
+	set_bit(*CRM_XTAL32_CNTL,0);
+	set_bit(*CRM_SYS_CNTL,5);
+	{
+		static volatile uint32_t old;
+		old = *CRM_RTC_COUNT;
+		while(*CRM_RTC_COUNT == old) { 
+			continue; 
+		}
+		set_bit(*CRM_SYS_CNTL,5);
+	}
+#else
+
+#endif	
   //timeout *= rtc_freq;
   /* go to sleep */
   /* 
 	Clear Cntl 
-	Also clears ContikiÂ´s settings!!!
+	Also clears Contiki´s settings!!!
 	*/
   *CRM_WU_CNTL 	= 0;
   
