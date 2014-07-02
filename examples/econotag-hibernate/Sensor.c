@@ -62,6 +62,11 @@
 #define PRINTLLADDR(addr)
 #endif
 
+uint8_t __flash__ g_flash_str[] = "text im flash";
+
+CONST_ARRAY(uint8_t, g_const_str, "text...");
+CONST(uint32_t, g_const_int, 0xABCDEFFF);
+
 /*
  * Resources to be activated need to be imported through the extern keyword.
  * The build system automatically compiles the resources in the corresponding sub-directory.

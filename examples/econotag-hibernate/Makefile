@@ -3,6 +3,7 @@ all: Zentrale Sensor
 CONTIKI = ../..
 
 TARGET = econotag
+HIBSAVE = 1
 
 # Contiki IPv6 configuration
 WITH_UIP6=1
