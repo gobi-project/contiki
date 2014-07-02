@@ -45,7 +45,11 @@ CFLAGS_THUMB ?= -mthumb
 # -mcallee-super-interworking
 
 # Linker flags
+ifdef HIBSAVE
 LINKERSCRIPT ?= $(MC1322X)/mc1322x.hibsave.lds
+else
+LINKERSCRIPT ?= $(MC1322X)/mc1322x.lds
+endif
 LDFLAGS      ?= -T $(LINKERSCRIPT) -nostartfiles -static -export-dynamic -u_start -Wl,-Map=$(@:.elf=.map)
 
 # Assembler flags

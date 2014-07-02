@@ -41,8 +41,11 @@ PROJECT_OBJECTFILES += ${addprefix $(OBJECTDIR)/,$(CONTIKI_TARGET_MAIN:.c=.o)}
 
 TEXT_BASE = 0x00400000
 export TEXT_BASE
+ifdef HIBSAVE
 LINKERSCRIPT = $(OBJECTDIR)/mc1322x.hibsave.lds
-
+else
+LINKERSCRIPT = $(OBJECTDIR)/mc1322x.lds
+endif
 STARTUP=$(OBJECTDIR)/start.o
 
 ARCH_FLAGS= -mcpu=arm7tdmi-s -mthumb-interwork -march=armv4t -mtune=arm7tdmi-s -DCONFIG_ARM -D__ARM__ #-Wcast-align
@@ -121,10 +124,15 @@ CUSTOM_RULE_C_TO_CO=yes
 %.$(TARGET): %_$(TARGET).bin
 	@
 
+ifdef
 %.elf: $(OBJECTDIR)/board.h  %.co $(PROJECT_OBJECTFILES) contiki-$(TARGET).a $(STARTUP) $(OBJECTDIR)/mc1322x.hibsave.lds
 	$(TRACE_CC)
 	$(Q)$(CC) $(LDFLAGS) $(CFLAGS) -nostartfiles -o $@ $(filter-out %.a %.lds,$^) $(filter %.a,$^) $(filter %.a,$^)
-
+else
+%.elf: $(OBJECTDIR)/board.h  %.co $(PROJECT_OBJECTFILES) contiki-$(TARGET).a $(STARTUP) $(OBJECTDIR)/mc1322x.lds
+	$(TRACE_CC)
+	$(Q)$(CC) $(LDFLAGS) $(CFLAGS) -nostartfiles -o $@ $(filter-out %.a %.lds,$^) $(filter %.a,$^) $(filter %.a,$^)
+endif
 %.lst: %.elf
 	$(OBJDUMP) -DS $< > $@
 
