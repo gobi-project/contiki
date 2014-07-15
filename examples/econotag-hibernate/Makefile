@@ -5,6 +5,8 @@ CONTIKI = ../..
 TARGET = econotag
 HIBSAVE = 1
 
+CFLAGS += -DOWN_SENSORS_DEFINITION
+
 # Contiki IPv6 configuration
 WITH_UIP6=1
 UIP_CONF_IPV6=1
