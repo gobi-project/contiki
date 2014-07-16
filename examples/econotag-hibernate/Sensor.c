@@ -65,6 +65,8 @@
 #define PRINTLLADDR(addr)
 #endif
 
+/*------------------------------------------------------------------*/
+/*tmp sensor stuff */
 #ifndef __TMP102_SENSOR_H
 #define __TMP102_SENSOR_H
 
@@ -90,7 +92,6 @@
 
 #endif
 
-
 static void set_configuration(uint8_t rate, uint8_t precision) {
   uint8_t tx_buf[] = {
     TMP102_REGISTER_CONFIGURATION,
@@ -100,8 +101,6 @@ static void set_configuration(uint8_t rate, uint8_t precision) {
 
   i2c_transmitinit(TMP102_ADDR, 3, tx_buf);
 }
-
-/* SENSOR ------------------------------------------------------------------ */
 
 static int tmp_value(int type) {
   uint8_t reg = TMP102_REGISTER_TEMPERATURE;
@@ -127,17 +126,6 @@ static int tmp_value(int type) {
   return temperature;
 }
 
-static int tmp_status(int type) {
-  switch (type) {
-    case SENSORS_ACTIVE:
-    case SENSORS_READY:
-      return 1; // fix?
-      break;
-  }
-
-  return 0;
-}
-
 static int tmp_configure(int type, int c) {
   switch (type) {
     case SENSORS_HW_INIT:
@@ -153,14 +141,10 @@ static int tmp_configure(int type, int c) {
   }
 }
 
-SENSORS_SENSOR(tmp, "Tmp", tmp_value, tmp_configure, tmp_status); // register the functions
-
-/* RESOURCE ---------------------------------------------------------------- */
-
 void tmp_resource_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset) {
   int length = 0;
 
-  length = snprintf(buffer, REST_MAX_CHUNK_SIZE, "tmp:%d,%d", tmp.value(SENSORS_ACTIVE) / 100, tmp.value(SENSORS_ACTIVE) % 100);
+  length = snprintf(buffer, REST_MAX_CHUNK_SIZE, "tmp:%d,%d", tmp_value(SENSORS_ACTIVE) / 100, tmp_value(SENSORS_ACTIVE) % 100);
 
   REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
   REST.set_response_payload(response, buffer, length);
@@ -173,6 +157,9 @@ PERIODIC_RESOURCE(res_tmp, "rt=\"gobi.s.tmp\";if=\"core.s\";obs", tmp_resource_h
 void tmp_periodic_handler() {
   REST.notify_subscribers(&res_tmp);
 }
+
+/*end of tmp stuff */
+/*------------------------------------------------------------------*/
 
 
 uint8_t __flash__ g_flash_str[] = "text im flash";
@@ -200,8 +187,6 @@ extern resource_t res_leds, res_toggle;
 extern resource_t res_light;
 #endif
 
-SENSORS(&button_sensor, &button_sensor2, &tmp);
-
 PROCESS(er_example_server, "Erbium Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
 
@@ -224,6 +209,9 @@ PROCESS_THREAD(er_example_server, ev, data)
   PRINTF("LL header: %u\n", UIP_LLH_LEN);
   PRINTF("IP+UDP header: %u\n", UIP_IPUDPH_LEN);
   PRINTF("REST max chunk: %u\n", REST_MAX_CHUNK_SIZE);
+
+  /* init tmp sensor */
+  tmp_configure(SENSORS_HW_INIT, 0);
 
   /* Initialize the REST engine. */
   rest_init_engine();
@@ -249,7 +237,7 @@ PROCESS_THREAD(er_example_server, ev, data)
 /*  rest_activate_resource(&res_light, "sensors/light"); */
 #endif
 
-//activate tmp resource
+/* activate tmp resource */
   rest_activate_resource(&res_tmp, "tmp");
 
 
